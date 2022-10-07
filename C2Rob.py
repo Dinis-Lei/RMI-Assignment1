@@ -126,7 +126,6 @@ class MyRob(CRobLinkAngs):
                     # unexplored direction
                     # TODO go back to simply following the line until we reach a known location again (check repreated), after that recalculate stubs and follow the next
                     # TODO quit when all stubs are gone -> map found
-                    pass
 
             # elif state=='wait':
             #     prev_loc = (self.measures.x, self.measures.y)
