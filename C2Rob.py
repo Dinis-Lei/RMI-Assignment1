@@ -10,6 +10,8 @@ CELLCOLS=14
 class MyRob(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
+        self.direction = 0 # Right
+
 
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
     # to know if there is a wall on top of cell(i,j) (i in 0..5), check if the value of labMap[i*2+1][j*2] is space or not
@@ -31,8 +33,12 @@ class MyRob(CRobLinkAngs):
         self.init_pos = None
         prev_loc = None
         direction = None
+        count = 0
+        wanted_rotation = 0
         while True:
+            print(f"{state= }")
             self.readSensors()
+            print(self.measures.dir)
 
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
@@ -44,37 +50,69 @@ class MyRob(CRobLinkAngs):
 
             if state == 'stop' and self.measures.start:
                 state = stopped_state
+                #self.driveMotors(0,0)
 
             if state != 'stop' and self.measures.stop:
                 stopped_state = state
                 state = 'stop'
+                
 
             if state == 'run':
                 cur_loc = (self.measures.x, self.measures.y)
-                if cur_loc[0] == prev_loc[0] + 2*direction and cur_loc[1] == prev_loc[1] + 2*direction:
-                    state = 'stop'
+                if (cur_loc[0] - prev_loc[0]) >= 1.7 or  (cur_loc[1] - prev_loc[1]) >= 1.7:
+                    state = 'wait'
                 self.wander()
             elif state=='wait':
                 prev_loc = (self.measures.x, self.measures.y)
-
-                self.setReturningLed(True)
-                if self.measures.visitingLed==True:
-                    self.setVisitingLed(False)
-                if self.measures.returningLed==True:
-                    state='return'
                 self.driveMotors(0.0,0.0)
-            elif state=='return':
-                if self.measures.visitingLed==True:
-                    self.setVisitingLed(False)
-                if self.measures.returningLed==True:
-                    self.setReturningLed(False)
-                self.wander()
+                count += 1
+                if count == 10:
+                    state = 'detect'
+                    count = 0
+            elif state=='detect':
+                cross_roads = self.detect_cross_roads()
+                if 'left' in cross_roads:
+                    state = 'rotate'
+                    wanted_rotation = self.direction + 90
+                elif 'right' in  cross_roads:
+                    state = 'rotate'
+                    wanted_rotation = self.direction - 90
+                else:
+                    state = 'run'
+            
+            elif state=='rotate':
+
+                self.rotate(wanted_rotation)
+                if self.measures.compass - wanted_rotation < 0.5:
+                    state ='run'
+
+                
+
             
 
     def wander(self):
-        print(self.measures.x, self.measures.y)
-        print(self.measures.compass)
-        print(self.measures.lineSensor)
+        
+        self.driveMotors(0.1, 0.1)
+
+    def detect_cross_roads(self):
+        line = [x == '1' for x in self.measures.lineSensor]
+        cross_roads = []
+        if sum(line[:3]) == 3:
+            #rotate left
+            cross_roads.append("left")
+        if sum(line[4:]) == 3:
+            #rotate right
+            cross_roads.append("right")
+       
+        return cross_roads
+
+    def rotate(self, goal):
+        if self.measures.compass - goal > 0:
+            self.driveMotors(+0.05, -0.05)
+        else:
+            self.driveMotors(-0.05, +0.05)          
+
+
 
 class Map():
     def __init__(self, filename):
