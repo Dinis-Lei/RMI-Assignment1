@@ -36,13 +36,14 @@ class MyRob(CRobLinkAngs):
         count = 0
         wanted_rotation = 0
         while True:
-            print(f"{state= }")
+            #print(f"{state= }")
             self.readSensors()
-            print(self.measures.dir)
+
 
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
                 prev_loc = self.init_pos
+                print(prev_loc)
 
             if self.measures.endLed:
                 print(self.rob_name + " exiting")
@@ -59,7 +60,8 @@ class MyRob(CRobLinkAngs):
 
             if state == 'run':
                 cur_loc = (self.measures.x, self.measures.y)
-                if (cur_loc[0] - prev_loc[0]) >= 1.7 or  (cur_loc[1] - prev_loc[1]) >= 1.7:
+                if (cur_loc[0] - prev_loc[0]) >= 1.8 or  (cur_loc[1] - prev_loc[1]) >= 1.8:
+                    print(cur_loc)
                     state = 'wait'
                 self.wander()
             elif state=='wait':
@@ -96,6 +98,7 @@ class MyRob(CRobLinkAngs):
 
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]
+        print(line)
         cross_roads = []
         if sum(line[:3]) == 3:
             #rotate left
