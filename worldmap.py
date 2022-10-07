@@ -24,4 +24,12 @@ class WorldMap():
                 print(c, end='')
             print('\n')
 
+    def print_to_file(self):
+        file = open("map.txt", "w")
+        for l in self.grid:
+            for c in l:
+                file.write(c)
+            file.write('\n')
+        file.close()
+
 
