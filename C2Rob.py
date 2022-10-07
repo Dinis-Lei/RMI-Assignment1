@@ -59,8 +59,22 @@ class MyRob(CRobLinkAngs):
 
             if state == 'run':
                 cur_loc = (self.measures.x, self.measures.y)
-                if (cur_loc[0] - prev_loc[0]) >= 1.7 or  (cur_loc[1] - prev_loc[1]) >= 1.7:
-                    state = 'wait'
+                if (cur_loc[0] - prev_loc[0]) >= 2:
+                    prev_loc = cur_loc
+                    # send new info to map
+                    pass
+                elif (cur_loc[1] - prev_loc[1]) >= 2:
+                    prev_loc = cur_loc
+                    # send new info to map
+                    pass
+
+                cross_roads = self.detect_cross_roads()
+                if 'left' in cross_roads:
+                    # register intersection in map (to be explored later)
+                    pass
+                if 'right' in  cross_roads:
+                    prev_loc = cur_loc
+                    pass
                 self.wander()
             elif state=='wait':
                 prev_loc = (self.measures.x, self.measures.y)
@@ -91,8 +105,37 @@ class MyRob(CRobLinkAngs):
             
 
     def wander(self):
-        
-        self.driveMotors(0.1, 0.1)
+        wheel_speed = 0.15
+        line = [x == '1' for x in self.measures.lineSensor]
+
+        # if sum(line[0:3]) > sum(line[-3:]):
+        #     line[-3:] = [0,0,0]
+        # elif sum(line[0:3]) < sum(line[-3:]):
+        #     line[0:3] = [0,0,0]
+
+        # print(line)
+
+        if line[0] and line[1]:
+            print('Rotate Left')
+            self.driveMotors(-wheel_speed,+wheel_speed)
+        elif line[1]:
+            print('Rotate slowly Left')
+            self.driveMotors(0,+wheel_speed)
+        elif line[-1] and line[-2]:
+            print('Rotate Right')
+            self.driveMotors(+wheel_speed,-wheel_speed)
+        elif line[-2]:
+            print('Rotate slowly Right')
+            self.driveMotors(+wheel_speed,0)
+        elif not line[4]:
+            print('Rotate slowly Left 2')
+            self.driveMotors(0,+wheel_speed)
+        elif not line[2]:
+            print('Rotate slowly Right 2')
+            self.driveMotors(+wheel_speed,0)
+        else:
+            print('Go')
+            self.driveMotors(wheel_speed,wheel_speed)
 
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]
