@@ -39,6 +39,8 @@ class MyRob(CRobLinkAngs):
         direction = None
         count = 0
         wanted_rotation = 0
+        stub_seeking = False
+        curr_stub = None
         while True:
             #print(f"{state= }")
             self.readSensors()
@@ -65,30 +67,31 @@ class MyRob(CRobLinkAngs):
                 cur_loc = [self.measures.x, self.measures.y]
                 x_dif = cur_loc[0] - prev_loc[0]
                 y_dif = cur_loc[1] - prev_loc[1]
+                repeat = False
                 if x_dif >= 2:
                     prev_loc[0] += 2
-                    self.map.add_pos(2,0)
+                    repeat = self.map.add_pos(2,0)
                     while intersections:
                         intersect = intersections.pop()
                         self.map.add_intersect(intersect[0],intersect[1]) 
                     #print("one to the right")
                 elif x_dif <= -2:
                     prev_loc[0] -= 2
-                    self.map.add_pos(-2,0)
+                    repeat = self.map.add_pos(-2,0)
                     while intersections:
                         intersect = intersections.pop()
                         self.map.add_intersect(intersect[0],intersect[1])
                     #print("one to the left")
                 elif y_dif >= 2:
                     prev_loc[1] += 2
-                    self.map.add_pos(0,-2)
+                    repeat = self.map.add_pos(0,-2)
                     while intersections:
                         intersect = intersections.pop()
                         self.map.add_intersect(intersect[0],intersect[1])
                     #print("one upwards")
                 elif y_dif <= -2:
                     prev_loc[1] -= 2
-                    self.map.add_pos(0,2)
+                    repeat = self.map.add_pos(0,2)
                     while intersections:
                         intersect = intersections.pop()
                         self.map.add_intersect(intersect[0],intersect[1])
@@ -108,8 +111,22 @@ class MyRob(CRobLinkAngs):
                         intersections.append((curr_orientation,'l'))
                     if 'r' in  cross_roads:
                         intersections.append((curr_orientation,'r'))
+
+                stub_seeking = stub_seeking or repeat # starts stub seeking after reaching its first loop/cycle
                 
-                self.wander()
+                if not stub_seeking:
+                    self.wander()
+                else:
+                    print("STUB SEEKING STARTED")
+                    if not curr_stub:
+                        curr_stub = self.map.get_stubs().pop() # gets closest stub so we seek it
+
+                    # TODO get direction for the curr stub
+                    # TODO follow in a straight line to closest stub until we reach its general location, rotate until aligned with the line in the
+                    # unexplored direction
+                    # TODO go back to simply following the line until we reach a known location again (check repreated), after that recalculate stubs and follow the next
+                    # TODO quit when all stubs are gone -> map found
+                    pass
 
             # elif state=='wait':
             #     prev_loc = (self.measures.x, self.measures.y)

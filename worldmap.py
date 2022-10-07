@@ -1,5 +1,4 @@
-
-
+from math import sqrt
 
 class WorldMap():
 
@@ -9,12 +8,15 @@ class WorldMap():
         self.grid[self.curr_pos[1]][self.curr_pos[0]] = '*'
 
 
-    def add_pos(self, x, y):
+    def add_pos(self, x, y) -> bool:
+        ret = False # returns whether or not the bot is walking territory that's already been explored
         
         curr_x = self.curr_pos[0] + x
         curr_y = self.curr_pos[1] + y
 
-        self.grid[curr_y][curr_x] = '*'
+        if self.grid[curr_y][curr_x] == ' ':
+            self.grid[curr_y][curr_x] = '*'
+        else: ret = True
 
         if x > 0: self.grid[curr_y][curr_x-1] = '-'   # left
         elif x < 0: self.grid[curr_y][curr_x+1] = '-' # right
@@ -22,6 +24,8 @@ class WorldMap():
         elif y < 0: self.grid[curr_y+1][curr_x] = '|' # down
 
         self.curr_pos = (curr_x, curr_y)
+
+        return ret 
 
     def add_intersect(self, abs_orientation, intersect_orientation): #substituir if else por dict
         x = self.curr_pos[0]
@@ -90,5 +94,22 @@ class WorldMap():
             file.write('\n')
             l_count += 1
         file.close()
+
+    def get_stubs(self) -> list:
+        stubs = []
+        for y in range(1,len(self.grid)-1):
+            for x in range(1,len(self.grid[y])-1):
+                if self.grid[y][x] in [' ', '*']: continue
+                elif self.grid[y][x] == '-':
+                    if self.grid[y][x-1] != '*': stubs.append((x-1,y))
+                    if self.grid[y][x+1] != '*': stubs.append((x+1,y)) 
+                elif self.grid[y][x] == '|':
+                    if self.grid[y-1][x] != '*': stubs.append((x,y-1))
+                    if self.grid[y+1][x] != '*': stubs.append((x,y+1))
+        stubs.sort(key=lambda x: distance(self.curr_pos,x)) 
+        return stubs
+
+def distance(pos1, pos2):
+    return sqrt(pow(pos1[0]-pos2[0],2)+pow(pos1[1]-pos2[1],2))
 
 
