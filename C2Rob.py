@@ -35,6 +35,7 @@ class MyRob(CRobLinkAngs):
 
         self.init_pos = None
         prev_loc = None
+        intersections = []
         direction = None
         count = 0
         wanted_rotation = 0
@@ -67,30 +68,47 @@ class MyRob(CRobLinkAngs):
                 if x_dif >= 2:
                     prev_loc[0] += 2
                     self.map.add_pos(2,0)
-                    print("one to the right")
+                    while intersections:
+                        intersect = intersections.pop()
+                        self.map.add_intersect(intersect[0],intersect[1]) 
+                    #print("one to the right")
                 elif x_dif <= -2:
                     prev_loc[0] -= 2
                     self.map.add_pos(-2,0)
-                    print("one to the left")
+                    while intersections:
+                        intersect = intersections.pop()
+                        self.map.add_intersect(intersect[0],intersect[1])
+                    #print("one to the left")
                 elif y_dif >= 2:
                     prev_loc[1] += 2
                     self.map.add_pos(0,-2)
-                    print("one upwards")
+                    while intersections:
+                        intersect = intersections.pop()
+                        self.map.add_intersect(intersect[0],intersect[1])
+                    #print("one upwards")
                 elif y_dif <= -2:
                     prev_loc[1] -= 2
                     self.map.add_pos(0,2)
-                    print("one downwards")
+                    while intersections:
+                        intersect = intersections.pop()
+                        self.map.add_intersect(intersect[0],intersect[1])
+                    #print("one downwards")
 
-                count += 1
-                if count % 100 == 0:
-                    self.map.print_to_file()
+                self.map.print_to_file()
 
-                cross_roads = self.detect_cross_roads()
-                if 'left' in cross_roads:
-                    # register intersection in map (to be explored later)
-                    pass
-                if 'right' in  cross_roads:
-                    pass
+                curr_orientation = None # absolute orientation
+                if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
+                elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
+                elif 175 < abs(self.measures.compass) < 180: curr_orientation = 'l' #left
+                elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
+
+                if curr_orientation:
+                    cross_roads = self.detect_cross_roads()
+                    if 'l' in cross_roads: # relative to the robot orientation
+                        intersections.append((curr_orientation,'l'))
+                    if 'r' in  cross_roads:
+                        intersections.append((curr_orientation,'r'))
+                
                 self.wander()
 
             # elif state=='wait':
@@ -159,10 +177,10 @@ class MyRob(CRobLinkAngs):
         cross_roads = []
         if sum(line[:3]) == 3:
             #rotate left
-            cross_roads.append("left")
+            cross_roads.append('l')
         if sum(line[4:]) == 3:
             #rotate right
-            cross_roads.append("right")
+            cross_roads.append('r')
        
         return cross_roads
 
