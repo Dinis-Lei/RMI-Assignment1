@@ -45,7 +45,7 @@ class MyRob(CRobLinkAngs):
 
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
-                prev_loc = self.init_pos
+                prev_loc = list(self.init_pos)
                 print(prev_loc)
 
             if self.measures.endLed:
@@ -61,29 +61,29 @@ class MyRob(CRobLinkAngs):
                 state = 'stop'
                 
             if state == 'run':
-                cur_loc = (self.measures.x, self.measures.y)
+                cur_loc = [self.measures.x, self.measures.y]
                 x_dif = cur_loc[0] - prev_loc[0]
                 y_dif = cur_loc[1] - prev_loc[1]
                 if x_dif >= 2:
-                    prev_loc = cur_loc
+                    prev_loc[0] += 2
                     self.map.add_pos(2,0)
                     print("one to the right")
                 elif x_dif <= -2:
-                    prev_loc = cur_loc
+                    prev_loc[0] -= 2
                     self.map.add_pos(-2,0)
                     print("one to the left")
                 elif y_dif >= 2:
-                    prev_loc = cur_loc
+                    prev_loc[1] += 2
                     self.map.add_pos(0,-2)
                     print("one upwards")
                 elif y_dif <= -2:
-                    prev_loc = cur_loc
+                    prev_loc[1] -= 2
                     self.map.add_pos(0,2)
                     print("one downwards")
 
                 count += 1
                 if count % 100 == 0:
-                    self.map.print_map()
+                    self.map.print_to_file()
 
                 cross_roads = self.detect_cross_roads()
                 if 'left' in cross_roads:
