@@ -4,6 +4,8 @@ from croblink import *
 from math import *
 import xml.etree.ElementTree as ET
 
+from worldmap import WorldMap
+
 CELLROWS=7
 CELLCOLS=14
 
@@ -11,6 +13,7 @@ class MyRob(CRobLinkAngs):
     def __init__(self, rob_name, rob_id, angles, host):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         self.direction = 0 # Right
+        self.map = WorldMap()
 
 
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
@@ -36,13 +39,14 @@ class MyRob(CRobLinkAngs):
         count = 0
         wanted_rotation = 0
         while True:
-            print(f"{state= }")
+            #print(f"{state= }")
             self.readSensors()
-            print(self.measures.dir)
+
 
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
                 prev_loc = self.init_pos
+                print(prev_loc)
 
             if self.measures.endLed:
                 print(self.rob_name + " exiting")
@@ -56,7 +60,6 @@ class MyRob(CRobLinkAngs):
                 stopped_state = state
                 state = 'stop'
                 
-
             if state == 'run':
                 cur_loc = (self.measures.x, self.measures.y)
                 if (cur_loc[0] - prev_loc[0]) >= 2:
@@ -80,25 +83,40 @@ class MyRob(CRobLinkAngs):
                 prev_loc = (self.measures.x, self.measures.y)
                 self.driveMotors(0.0,0.0)
                 count += 1
-                if count == 10:
-                    state = 'detect'
-                    count = 0
-            elif state=='detect':
+                if count % 100 == 0:
+                    self.map.print_map()
+
                 cross_roads = self.detect_cross_roads()
                 if 'left' in cross_roads:
-                    state = 'rotate'
-                    wanted_rotation = self.direction + 90
-                elif 'right' in  cross_roads:
-                    state = 'rotate'
-                    wanted_rotation = self.direction - 90
-                else:
-                    state = 'run'
+                    # register intersection in map (to be explored later)
+                    pass
+                if 'right' in  cross_roads:
+                    prev_loc = cur_loc
+                    pass
+                self.wander()
+            # elif state=='wait':
+            #     prev_loc = (self.measures.x, self.measures.y)
+            #     self.driveMotors(0.0,0.0)
+            #     count += 1
+            #     if count == 10:
+            #         state = 'detect'
+            #         count = 0
+            # elif state=='detect':
+            #     cross_roads = self.detect_cross_roads()
+            #     if 'left' in cross_roads:
+            #         state = 'rotate'
+            #         wanted_rotation = self.direction + 90
+            #     elif 'right' in  cross_roads:
+            #         state = 'rotate'
+            #         wanted_rotation = self.direction - 90
+            #     else:
+            #         state = 'run'
             
-            elif state=='rotate':
+            # elif state=='rotate':
 
-                self.rotate(wanted_rotation)
-                if self.measures.compass - wanted_rotation < 0.5:
-                    state ='run'
+            #     self.rotate(wanted_rotation)
+            #     if self.measures.compass - wanted_rotation < 0.5:
+            #         state ='run'
 
                 
 
