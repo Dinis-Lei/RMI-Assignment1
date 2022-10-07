@@ -62,26 +62,25 @@ class MyRob(CRobLinkAngs):
                 
             if state == 'run':
                 cur_loc = (self.measures.x, self.measures.y)
-                if (cur_loc[0] - prev_loc[0]) >= 2:
+                x_dif = cur_loc[0] - prev_loc[0]
+                y_dif = cur_loc[1] - prev_loc[1]
+                if x_dif >= 2:
                     prev_loc = cur_loc
-                    # send new info to map
-                    pass
-                elif (cur_loc[1] - prev_loc[1]) >= 2:
+                    self.map.add_pos(2,0)
+                    print("one to the right")
+                elif x_dif <= -2:
                     prev_loc = cur_loc
-                    # send new info to map
-                    pass
+                    self.map.add_pos(-2,0)
+                    print("one to the left")
+                elif y_dif >= 2:
+                    prev_loc = cur_loc
+                    self.map.add_pos(0,-2)
+                    print("one upwards")
+                elif y_dif <= -2:
+                    prev_loc = cur_loc
+                    self.map.add_pos(0,2)
+                    print("one downwards")
 
-                cross_roads = self.detect_cross_roads()
-                if 'left' in cross_roads:
-                    # register intersection in map (to be explored later)
-                    pass
-                if 'right' in  cross_roads:
-                    prev_loc = cur_loc
-                    pass
-                self.wander()
-            elif state=='wait':
-                prev_loc = (self.measures.x, self.measures.y)
-                self.driveMotors(0.0,0.0)
                 count += 1
                 if count % 100 == 0:
                     self.map.print_map()
@@ -91,9 +90,9 @@ class MyRob(CRobLinkAngs):
                     # register intersection in map (to be explored later)
                     pass
                 if 'right' in  cross_roads:
-                    prev_loc = cur_loc
                     pass
                 self.wander()
+
             # elif state=='wait':
             #     prev_loc = (self.measures.x, self.measures.y)
             #     self.driveMotors(0.0,0.0)
@@ -134,25 +133,25 @@ class MyRob(CRobLinkAngs):
         # print(line)
 
         if line[0] and line[1]:
-            print('Rotate Left')
+            #print('Rotate Left')
             self.driveMotors(-wheel_speed,+wheel_speed)
         elif line[1]:
-            print('Rotate slowly Left')
+            #print('Rotate slowly Left')
             self.driveMotors(0,+wheel_speed)
         elif line[-1] and line[-2]:
-            print('Rotate Right')
+            #print('Rotate Right')
             self.driveMotors(+wheel_speed,-wheel_speed)
         elif line[-2]:
-            print('Rotate slowly Right')
+            #print('Rotate slowly Right')
             self.driveMotors(+wheel_speed,0)
         elif not line[4]:
-            print('Rotate slowly Left 2')
+            #print('Rotate slowly Left 2')
             self.driveMotors(0,+wheel_speed)
         elif not line[2]:
-            print('Rotate slowly Right 2')
+            #print('Rotate slowly Right 2')
             self.driveMotors(+wheel_speed,0)
         else:
-            print('Go')
+            #print('Go')
             self.driveMotors(wheel_speed,wheel_speed)
 
     def detect_cross_roads(self):
