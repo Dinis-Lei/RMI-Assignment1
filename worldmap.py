@@ -31,30 +31,30 @@ class WorldMap():
         x = self.curr_pos[0]
         y = self.curr_pos[1]
 
-        print(abs_orientation, intersect_orientation, x, y)
+        #print(abs_orientation, intersect_orientation, x, y)
 
         if abs_orientation == intersect_orientation: # down
             self.grid[y+1][x] = '|'
-            print("Adding path to position (", x, ",", y+1, ")")
+            #print("Adding path to position (", x, ",", y+1, ")")
         elif abs_orientation in ['r','l']: # up
             self.grid[y-1][x] = '|'
-            print("Adding path to position (", x, ",", y-1, ")")
+            #print("Adding path to position (", x, ",", y-1, ")")
         elif abs_orientation == 'u':
             if intersect_orientation == 'l': # left
                 self.grid[y][x-1] = '-'
-                print("Adding path to position (", x-1, ",", y, ")")
+                #print("Adding path to position (", x-1, ",", y, ")")
             else: # right
                 self.grid[y][x+1] = '-'
-                print("Adding path to position (", x+1, ",", y, ")")
+                #print("Adding path to position (", x+1, ",", y, ")")
         elif abs_orientation == 'd':
             if intersect_orientation == 'l': # right
                 self.grid[y][x+1] = '-'
-                print("Adding path to position (", x+1, ",", y, ")")
+                #print("Adding path to position (", x+1, ",", y, ")")
             else: # left
                 self.grid[y][x-1] = '-'
-                print("Adding path to position (", x-1, ",", y, ")")
-
-        print("Nothing happens...")
+                #print("Adding path to position (", x-1, ",", y, ")")
+        else:
+            print("Nothing happens...")
 
         # if intersect_orientation == 'l':
         #     if abs_orientation == 'r': # up

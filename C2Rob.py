@@ -112,20 +112,21 @@ class MyRob(CRobLinkAngs):
                     if 'r' in  cross_roads:
                         intersections.append((curr_orientation,'r'))
 
-                stub_seeking = stub_seeking or repeat # starts stub seeking after reaching its first loop/cycle
                 
-                if not stub_seeking:
+                if not repeat:
                     self.wander()
                 else:
                     print("STUB SEEKING STARTED")
-                    if not curr_stub:
-                        curr_stub = self.map.get_stubs().pop() # gets closest stub so we seek it
+                    self.driveMotors(0,0)
+                    stubs = self.map.get_stubs()
+                    if stubs:
+                        curr_stub = self.map.get_stubs().pop()
+                    else:
+                        quit() # map found?
+                    state = "seek_stub"
 
-                    # TODO get direction for the curr stub
-                    # TODO follow in a straight line to closest stub until we reach its general location, rotate until aligned with the line in the
-                    # unexplored direction
-                    # TODO go back to simply following the line until we reach a known location again (check repreated), after that recalculate stubs and follow the next
-                    # TODO quit when all stubs are gone -> map found
+            elif state == "seek_stub":
+                pass
 
             # elif state=='wait':
             #     prev_loc = (self.measures.x, self.measures.y)
