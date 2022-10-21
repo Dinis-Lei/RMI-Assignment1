@@ -1,4 +1,5 @@
 from math import sqrt
+from graph import Graph
 
 class WorldMap():
 
@@ -6,6 +7,7 @@ class WorldMap():
         self.grid = [[' ' for i in range(49) ] for j in range(21)]
         self.curr_pos = (24,10)
         self.grid[self.curr_pos[1]][self.curr_pos[0]] = '*'
+        self.graph = Graph()
 
 
     def add_pos(self, x, y) -> bool:
@@ -16,12 +18,23 @@ class WorldMap():
 
         if self.grid[curr_y][curr_x] == ' ':
             self.grid[curr_y][curr_x] = '*'
-        else: ret = True
+            self.graph.add_node(curr_x, curr_y)
+        else: 
+            ret = True
 
-        if x > 0: self.grid[curr_y][curr_x-1] = '-'   # left
-        elif x < 0: self.grid[curr_y][curr_x+1] = '-' # right
-        elif y > 0: self.grid[curr_y-1][curr_x] = '|' # up
-        elif y < 0: self.grid[curr_y+1][curr_x] = '|' # down
+        if ret:
+            if x > 0: 
+                self.grid[curr_y][curr_x-1] = '-'   # left
+                self.graph.add_node(curr_x-1,curr_y)
+            elif x < 0: 
+                self.grid[curr_y][curr_x+1] = '-' # right
+                self.graph.add_node(curr_x+1,curr_y)
+            elif y > 0: 
+                self.grid[curr_y-1][curr_x] = '|' # up
+                self.graph.add_node(curr_x,curr_y-1)
+            elif y < 0: 
+                self.grid[curr_y+1][curr_x] = '|' # down
+                self.graph.add_node(curr_x,curr_y+1)
 
         self.curr_pos = (curr_x, curr_y)
 
@@ -113,3 +126,19 @@ def distance(pos1, pos2):
     return sqrt(pow(pos1[0]-pos2[0],2)+pow(pos1[1]-pos2[1],2))
 
 
+class Node():
+
+    def __init__(self, x, y) -> None:
+        self.x = x
+        self.y = y
+        self.connected_nodes = []
+
+
+    def connect_node(self, node) -> None:
+        self.connected_nodes.append(node)
+
+
+class Graph():
+
+    def __init__(self) -> None:
+        pass
