@@ -25,16 +25,16 @@ class WorldMap():
         if ret:
             if x > 0: 
                 self.grid[curr_y][curr_x-1] = '-'   # left
-                self.graph.add_node(curr_x-1,curr_y)
+                #self.graph.add_node(curr_x-1,curr_y)
             elif x < 0: 
                 self.grid[curr_y][curr_x+1] = '-' # right
-                self.graph.add_node(curr_x+1,curr_y)
+                #self.graph.add_node(curr_x+1,curr_y)
             elif y > 0: 
                 self.grid[curr_y-1][curr_x] = '|' # up
-                self.graph.add_node(curr_x,curr_y-1)
+                #self.graph.add_node(curr_x,curr_y-1)
             elif y < 0: 
                 self.grid[curr_y+1][curr_x] = '|' # down
-                self.graph.add_node(curr_x,curr_y+1)
+                #self.graph.add_node(curr_x,curr_y+1)
 
         self.curr_pos = (curr_x, curr_y)
 
@@ -48,45 +48,32 @@ class WorldMap():
 
         if abs_orientation == intersect_orientation: # down
             self.grid[y+1][x] = '|'
+            self.graph.add_node(x, y+2)
             print("Adding path to position (", x, ",", y+1, ")")
         elif abs_orientation in ['r','l']: # up
             self.grid[y-1][x] = '|'
+            self.graph.add_node(x, y-2)
             print("Adding path to position (", x, ",", y-1, ")")
         elif abs_orientation == 'u':
             if intersect_orientation == 'l': # left
                 self.grid[y][x-1] = '-'
+                self.graph.add_node(x-2, y)
                 print("Adding path to position (", x-1, ",", y, ")")
             else: # right
                 self.grid[y][x+1] = '-'
+                self.graph.add_node(x+2, y)
                 print("Adding path to position (", x+1, ",", y, ")")
         elif abs_orientation == 'd':
             if intersect_orientation == 'l': # right
                 self.grid[y][x+1] = '-'
+                self.graph.add_node(x+2, y)
                 print("Adding path to position (", x+1, ",", y, ")")
             else: # left
                 self.grid[y][x-1] = '-'
+                self.graph.add_node(x-2, y)
                 print("Adding path to position (", x-1, ",", y, ")")
 
         print("Nothing happens...")
-
-        # if intersect_orientation == 'l':
-        #     if abs_orientation == 'r': # up
-        #         pass
-        #     elif abs_orientation == 'l': # down
-        #         pass
-        #     elif abs_orientation == 'u': # left
-        #         pass
-        #     elif abs_orientation == 'd': # right
-        #         pass
-        # elif intersect_orientation == 'r':
-        #     if abs_orientation == 'r': # down
-        #         pass
-        #     elif abs_orientation == 'l': # up
-        #         pass
-        #     elif abs_orientation == 'u': # right
-        #         pass
-        #     elif abs_orientation == 'd': # left
-        #         pass
 
     def print_map(self):
         for l in self.grid:
