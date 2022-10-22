@@ -82,6 +82,7 @@ class MyRob(CRobLinkAngs):
                 cur_y = cur_loc[1] - self.init_pos[1] + 10
 
                 if abs(prev_loc[0] - cur_x) >= 2:
+                    count = 1
                     print("VERTICE")
                     print(cur_loc, prev_loc)
                     print(cur_x, cur_y)
@@ -93,16 +94,20 @@ class MyRob(CRobLinkAngs):
                         print("Intersect:", intersect)
                         self.map.add_intersect(intersect[0],intersect[1]) 
                 elif abs(prev_loc[1] - cur_y) >= 2:
+                    count = 1
                     print("VERTICE")
                     print(cur_loc, prev_loc)
                     print(cur_x, cur_y)
-                    repeat = self.map.add_pos(prev_loc[0], round(cur_y))
+                    self.map.add_pos(prev_loc[0], round(cur_y))
                     prev_loc[1] = round(cur_y)
                     print("------")
                     while self.intersections:
                         intersect = self.intersections.pop()
                         print("Intersect:", intersect)
                         self.map.add_intersect(intersect[0],intersect[1]) 
+                
+                if prev_loc[0] == 24 and prev_loc[1] == 10 and count != 0:
+                    repeat = True
                 
 
                 self.map.print_to_file()
@@ -123,8 +128,8 @@ class MyRob(CRobLinkAngs):
 
             elif state == "seek_stub":
                 print("SEEK STUB")
-                # for node in self.map.graph.nodes:
-                #     print(node)
+                for node in self.map.graph.nodes:
+                    print(self.map.graph.nodes[node])
 
                 stubs = self.map.get_stubs()
                 curr_stub = stubs.pop(0)
@@ -181,15 +186,12 @@ class MyRob(CRobLinkAngs):
 
                 if cur_x != tar_x:
                     diff = cur_x - tar_x
-
                     if diff < 0:
                         direction = 0
                     else:
                         direction = 180
-
                 elif cur_y != tar_y:
                     diff = cur_y - tar_y
-
                     if diff > 0:
                         direction = -90
                     else:
@@ -208,11 +210,12 @@ class MyRob(CRobLinkAngs):
         cur_direction = self.measures.compass
 
         #print(f"{cur_direction}, {direction}, {breaker}")
-
-        if not (direction-5 < cur_direction < direction+5):
+        if direction == 180 and not (175 < abs(cur_direction) < 185):
+            mod = 1 if cur_direction < 0 else -1
+            self.driveMotors(0.05*mod, 0.05*-mod)
+        elif direction != 180 and  not (direction-5 < cur_direction < direction+5):
             diff = cur_direction - direction
             mod = 1 if diff > 0 else -1
-
             self.driveMotors(0.05*mod, 0.05*-mod)
         else:
             self.driveMotors(0.1 - breaker,0.1 - breaker)

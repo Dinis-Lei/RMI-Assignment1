@@ -28,19 +28,19 @@ class WorldMap():
         diff_x = x - self.curr_pos[0]
         diff_y = y - self.curr_pos[1]
 
-        if not ret:
-            if diff_x > 0: 
-                self.grid[y][x-1] = '-'   # left
-                self.graph.connect_nodes(x,y, x-2,y)
-            elif diff_x < 0: 
-                self.grid[y][x+1] = '-' # right
-                self.graph.connect_nodes(x,y, x+2,y)
-            elif diff_y > 0: 
-                self.grid[y-1][x] = '|' # up
-                self.graph.connect_nodes(x,y, x,y-2)
-            elif diff_y < 0: 
-                self.grid[y+1][x] = '|' # down
-                self.graph.connect_nodes(x,y, x,y+2)
+        
+        if diff_x > 0: 
+            self.grid[y][x-1] = '-'   # left
+            self.graph.connect_nodes(x,y, x-2,y)
+        elif diff_x < 0: 
+            self.grid[y][x+1] = '-' # right
+            self.graph.connect_nodes(x,y, x+2,y)
+        elif diff_y > 0: 
+            self.grid[y-1][x] = '|' # up
+            self.graph.connect_nodes(x,y, x,y-2)
+        elif diff_y < 0: 
+            self.grid[y+1][x] = '|' # down
+            self.graph.connect_nodes(x,y, x,y+2)
 
         self.curr_pos = (x, y)
 
