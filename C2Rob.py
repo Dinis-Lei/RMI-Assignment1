@@ -3,6 +3,7 @@ import sys
 from croblink import *
 from math import *
 import xml.etree.ElementTree as ET
+import time
 
 from worldmap import WorldMap
 
@@ -30,25 +31,34 @@ class MyRob(CRobLinkAngs):
             print("Connection refused or error")
             quit()
 
-        state = 'stop'
+        state = 'stop' ####
         stopped_state = 'run'
 
         self.init_pos = None
         prev_loc = None
-        intersections = []
+        self.intersections = []
         direction = None
         count = 0
         wanted_rotation = 0
         stub_seeking = False
         curr_stub = None
+        path = []
+
+        path = [(26, 10), (26, 8), (28, 8)]
+        target = path.pop(0)
+
+
         while True:
             #print(f"{state= }")
             self.readSensors()
 
+            # self.driveMotors(0.05,-0.05)
+            # print(self.measures.compass)
+
 
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
-                prev_loc = list(self.init_pos)
+                prev_loc = [24, 10]
                 print(prev_loc)
 
             if self.measures.endLed:
@@ -65,93 +75,164 @@ class MyRob(CRobLinkAngs):
                 
             if state == 'run':
                 cur_loc = [self.measures.x, self.measures.y]
-                x_dif = cur_loc[0] - prev_loc[0]
-                y_dif = cur_loc[1] - prev_loc[1]
+
                 repeat = False
-                if x_dif >= 2:
-                    prev_loc[0] += 2
-                    repeat = self.map.add_pos(2,0)
-                    while intersections:
-                        intersect = intersections.pop()
+
+                cur_x = cur_loc[0] - self.init_pos[0] + 24
+                cur_y = cur_loc[1] - self.init_pos[1] + 10
+
+                if abs(prev_loc[0] - cur_x) >= 2:
+                    print("VERTICE")
+                    print(cur_loc, prev_loc)
+                    print(cur_x, cur_y)
+                    repeat = self.map.add_pos(round(cur_x), prev_loc[1])
+                    prev_loc[0] = round(cur_x)
+                    print("------")
+                    while self.intersections:
+                        intersect = self.intersections.pop()
+                        print("Intersect:", intersect)
                         self.map.add_intersect(intersect[0],intersect[1]) 
-                    #print("one to the right")
-                elif x_dif <= -2:
-                    prev_loc[0] -= 2
-                    repeat = self.map.add_pos(-2,0)
-                    while intersections:
-                        intersect = intersections.pop()
-                        self.map.add_intersect(intersect[0],intersect[1])
-                    #print("one to the left")
-                elif y_dif >= 2:
-                    prev_loc[1] += 2
-                    repeat = self.map.add_pos(0,-2)
-                    while intersections:
-                        intersect = intersections.pop()
-                        self.map.add_intersect(intersect[0],intersect[1])
-                    #print("one upwards")
-                elif y_dif <= -2:
-                    prev_loc[1] -= 2
-                    repeat = self.map.add_pos(0,2)
-                    while intersections:
-                        intersect = intersections.pop()
-                        self.map.add_intersect(intersect[0],intersect[1])
-                    #print("one downwards")
+                elif abs(prev_loc[1] - cur_y) >= 2:
+                    print("VERTICE")
+                    print(cur_loc, prev_loc)
+                    print(cur_x, cur_y)
+                    repeat = self.map.add_pos(prev_loc[0], round(cur_y))
+                    prev_loc[1] = round(cur_y)
+                    print("------")
+                    while self.intersections:
+                        intersect = self.intersections.pop()
+                        print("Intersect:", intersect)
+                        self.map.add_intersect(intersect[0],intersect[1]) 
+                
 
                 self.map.print_to_file()
 
-                curr_orientation = None # absolute orientation
-                if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
-                elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
-                elif 175 < abs(self.measures.compass) < 180: curr_orientation = 'l' #left
-                elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
-
-                if curr_orientation:
-                    cross_roads = self.detect_cross_roads()
-                    if 'l' in cross_roads: # relative to the robot orientation
-                        intersections.append((curr_orientation,'l'))
-                    if 'r' in  cross_roads:
-                        intersections.append((curr_orientation,'r'))
-
-                stub_seeking = stub_seeking or repeat # starts stub seeking after reaching its first loop/cycle
+                self.detect_intersection()
                 
-                if not stub_seeking:
+                if not repeat:
                     self.wander()
                 else:
                     print("STUB SEEKING STARTED")
-                    if not curr_stub:
-                        curr_stub = self.map.get_stubs().pop() # gets closest stub so we seek it
+                    # self.driveMotors(0,0)
+                    # stubs = self.map.get_stubs()
+                    # if stubs:
+                    #     curr_stub = self.map.get_stubs().pop(0)
+                    # else:
+                    #     quit() # map found?
+                    state = "seek_stub"
 
-                    # TODO get direction for the curr stub
-                    # TODO follow in a straight line to closest stub until we reach its general location, rotate until aligned with the line in the
-                    # unexplored direction
-                    # TODO go back to simply following the line until we reach a known location again (check repreated), after that recalculate stubs and follow the next
-                    # TODO quit when all stubs are gone -> map found
+            elif state == "seek_stub":
+                print("SEEK STUB")
+                # for node in self.map.graph.nodes:
+                #     print(node)
 
-            # elif state=='wait':
-            #     prev_loc = (self.measures.x, self.measures.y)
-            #     self.driveMotors(0.0,0.0)
-            #     count += 1
-            #     if count == 10:
-            #         state = 'detect'
-            #         count = 0
-            # elif state=='detect':
-            #     cross_roads = self.detect_cross_roads()
-            #     if 'left' in cross_roads:
-            #         state = 'rotate'
-            #         wanted_rotation = self.direction + 90
-            #     elif 'right' in  cross_roads:
-            #         state = 'rotate'
-            #         wanted_rotation = self.direction - 90
-            #     else:
-            #         state = 'run'
-            
-            # elif state=='rotate':
+                stubs = self.map.get_stubs()
+                curr_stub = stubs.pop(0)
+                print(stubs)
+                print(curr_stub)
+                print(self.map.curr_pos)
+                pos = self.map.curr_pos
+                
+                node1 = self.map.graph.get_node(f"{pos[0]}:{pos[1]}")
+                node2 = self.map.graph.get_node(f"{curr_stub[0]}:{curr_stub[1]}")
 
-            #     self.rotate(wanted_rotation)
-            #     if self.measures.compass - wanted_rotation < 0.5:
-            #         state ='run'
+                path = self.map.graph.shortest_path(node1, node2)[1:]
+                print(f"Path: {[x.id for x in path]}")
+                target = path.pop(0)
+                state = "move_to"
+                print(self.measures.compass)
+                print(state)
+                #return
+
+            elif state == "move_to":
+                #print(f"Target: {target.id}")
+
+                cur_loc = [self.measures.x, self.measures.y]
+                cur_x = cur_loc[0] - self.init_pos[0] + 24
+                cur_y = cur_loc[1] - self.init_pos[1] + 10
+                tar_x = target.x
+                tar_y = target.y
+                #print(f"Position: {(cur_x, cur_y)}")
+                if cur_x == tar_x and cur_y == tar_y:
+                    # Reached desired node
+                    self.map.add_pos(int(cur_x), int(cur_y))
+                    while self.intersections:
+                            intersect = self.intersections.pop()
+                            print("Intersect:", intersect)
+                            self.map.add_intersect(intersect[0],intersect[1]) 
+
+                    self.map.print_to_file()
+
+                    if not path:
+                        # found path
+                        state = "seek_stub"
+                        print("DONE")
+                        self.driveMotors(0,0)
+
+                        continue
+                        
+                    target = path.pop(0)
+                    tar_x = target.x
+                    tar_y = target.y
+
+                diff = 0
+                breaker = 0
+                direction = 0
+
+                if cur_x != tar_x:
+                    diff = cur_x - tar_x
+
+                    if diff < 0:
+                        direction = 0
+                    else:
+                        direction = 180
+
+                elif cur_y != tar_y:
+                    diff = cur_y - tar_y
+
+                    if diff > 0:
+                        direction = -90
+                    else:
+                        direction = 90
+
+                breaker = 0.06 if 0 < abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
+                    
+                #print(f"Direction: {direction}")
+
+                self.move(direction, breaker)
 
                 
+
+    def move(self, direction, breaker):
+
+        cur_direction = self.measures.compass
+
+        #print(f"{cur_direction}, {direction}, {breaker}")
+
+        if not (direction-5 < cur_direction < direction+5):
+            diff = cur_direction - direction
+            mod = 1 if diff > 0 else -1
+
+            self.driveMotors(0.05*mod, 0.05*-mod)
+        else:
+            self.driveMotors(0.1 - breaker,0.1 - breaker)
+
+        self.detect_intersection()
+
+    def detect_intersection(self):
+        curr_orientation = None
+        if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
+        elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
+        elif 175 < abs(self.measures.compass) < 180: curr_orientation = 'l' #left
+        elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
+
+        if curr_orientation:
+            cross_roads = self.detect_cross_roads()
+            if 'l' in cross_roads: # relative to the robot orientation
+                self.intersections.append((curr_orientation,'l'))
+            if 'r' in  cross_roads:
+                self.intersections.append((curr_orientation,'r'))
+
 
             
 
