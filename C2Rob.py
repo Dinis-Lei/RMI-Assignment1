@@ -132,6 +132,11 @@ class MyRob(CRobLinkAngs):
                     print(self.map.graph.nodes[node])
 
                 stubs = self.map.get_stubs()
+
+                if not stubs:
+                    state = "finish"
+                    return
+
                 curr_stub = stubs.pop(0)
                 print(stubs)
                 print(curr_stub)
@@ -159,12 +164,21 @@ class MyRob(CRobLinkAngs):
                 tar_y = target.y
                 #print(f"Position: {(cur_x, cur_y)}")
                 if cur_x == tar_x and cur_y == tar_y:
+                    
+
                     # Reached desired node
                     self.map.add_pos(int(cur_x), int(cur_y))
+                    self.detect_intersection()
+                    line = [x == '1' for x in self.measures.lineSensor]
+                    print("LINE: ", line)
+                    if sum(line[2:5]) > 0:
+                        print("ADD")
+                        self.map.add_stub(self.measures.compass)
+
                     while self.intersections:
-                            intersect = self.intersections.pop()
-                            print("Intersect:", intersect)
-                            self.map.add_intersect(intersect[0],intersect[1]) 
+                        intersect = self.intersections.pop()
+                        print("Intersect:", intersect)
+                        self.map.add_intersect(intersect[0],intersect[1]) 
 
                     self.map.print_to_file()
 
@@ -173,7 +187,6 @@ class MyRob(CRobLinkAngs):
                         state = "seek_stub"
                         print("DONE")
                         self.driveMotors(0,0)
-
                         continue
                         
                     target = path.pop(0)
@@ -210,10 +223,10 @@ class MyRob(CRobLinkAngs):
         cur_direction = self.measures.compass
 
         #print(f"{cur_direction}, {direction}, {breaker}")
-        if direction == 180 and not (175 < abs(cur_direction) < 185):
+        if direction == 180 and not (177 <= abs(cur_direction)):
             mod = 1 if cur_direction < 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)
-        elif direction != 180 and  not (direction-5 < cur_direction < direction+5):
+        elif direction != 180 and  not (direction-3 < cur_direction < direction+3):
             diff = cur_direction - direction
             mod = 1 if diff > 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)

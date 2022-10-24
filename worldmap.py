@@ -16,7 +16,6 @@ class WorldMap():
     def add_pos(self, x, y) -> bool:
         ret = False # returns whether or not the bot is walking territory that's already been explored
         
-
         if self.grid[y][x] == ' ':
             self.grid[y][x] = '*'
             self.graph.add_node(x, y)
@@ -92,6 +91,37 @@ class WorldMap():
                 print(f"ADD NODE: ({x-2}, {y})")
         else:
             print("Nothing happens...")
+
+
+    def add_stub(self, orientation):
+        
+        x = self.curr_pos[0]
+        y = self.curr_pos[1]
+
+        if -5 < orientation < 5:    # right
+            self.grid[y][x+1] = '-'
+            self.graph.add_node(x+2, y)
+            self.graph.connect_nodes(x,y, x+2,y)
+            print(f"Adding path to position ({x-2}, {y})")
+            print(f"ADD NODE: ({x+2}, {y})")
+        elif 175 < abs(orientation): # left
+            self.grid[y][x-1] = '-'
+            self.graph.add_node(x-2, y)
+            self.graph.connect_nodes(x,y, x-2,y)
+            print(f"Adding path to position ({x-1}, {y})")
+            print(f"ADD NODE: ({x-2}, {y})")
+        elif 85 < orientation < 95: # up
+            self.grid[y-1][x]
+            self.graph.add_node(x, y-2)
+            self.graph.connect_nodes(x,y, x,y-2)
+            print(f"Adding path to position ({x}, {y-1})")
+            print(f"ADD NODE: ({x}, {y-2})")
+        elif -95 < orientation < -85: # down
+            self.grid[y+1][x]
+            self.graph.add_node(x, y+2)
+            self.graph.connect_nodes(x,y, x,y+2)
+            print(f"Adding path to position ({x}, {y+1})")
+            print(f"ADD NODE: ({x}, {y+2})")
 
     def print_map(self):
         for l in self.grid:
