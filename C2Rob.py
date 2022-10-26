@@ -86,7 +86,7 @@ class MyRob(CRobLinkAngs):
                     print("VERTICE")
                     print(cur_loc, prev_loc)
                     print(cur_x, cur_y)
-                    repeat = self.map.add_pos(round(cur_x), prev_loc[1])
+                    self.map.add_pos(round(cur_x), prev_loc[1])
                     prev_loc[0] = round(cur_x)
                     print("------")
                     while self.intersections:
@@ -109,7 +109,6 @@ class MyRob(CRobLinkAngs):
                 if prev_loc[0] == 24 and prev_loc[1] == 10 and count != 0:
                     repeat = True
                 
-
                 self.map.print_to_file()
 
                 self.detect_intersection()
@@ -163,19 +162,18 @@ class MyRob(CRobLinkAngs):
                 tar_x = target.x
                 tar_y = target.y
                 #print(f"Position: {(cur_x, cur_y)}")
-                if cur_x == tar_x and cur_y == tar_y:
+                if abs(cur_x-tar_x) < 0.05 and abs(cur_y-tar_y) < 0.05:
                     
 
                     # Reached desired node
-                    self.map.add_pos(int(cur_x), int(cur_y))
-                    self.detect_intersection()
+                    self.map.add_pos(tar_x, tar_y)
                     line = [x == '1' for x in self.measures.lineSensor]
                     print("LINE: ", line)
                     if sum(line[2:5]) > 0:
                         print("ADD")
                         self.map.add_stub(self.measures.compass)
 
-                    while self.intersections:
+                    while self.intersections: 
                         intersect = self.intersections.pop()
                         print("Intersect:", intersect)
                         self.map.add_intersect(intersect[0],intersect[1]) 
@@ -190,6 +188,14 @@ class MyRob(CRobLinkAngs):
                         continue
                         
                     target = path.pop(0)
+                    # if tar_x - target.x > 0: # esquerda
+                    #     direction = "l"
+                    # elif tar_x - target.x < 0: # direita
+                    #     direction = "r"
+                    # elif tar_y - target.y > 0: # cima
+                    #     direction = "u"
+                    # else: #baixo
+                    #     direction = "d"
                     tar_x = target.x
                     tar_y = target.y
 
@@ -211,29 +217,42 @@ class MyRob(CRobLinkAngs):
                         direction = 90
 
                 breaker = 0.06 if 0 < abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
-                    
-                #print(f"Direction: {direction}")
 
                 self.move(direction, breaker)
+                self.detect_intersection()
 
-                
 
     def move(self, direction, breaker):
-
         cur_direction = self.measures.compass
 
-        #print(f"{cur_direction}, {direction}, {breaker}")
+        print(f"{cur_direction}, {direction}, {breaker}")
         if direction == 180 and not (177 <= abs(cur_direction)):
             mod = 1 if cur_direction < 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)
+            print(mod)
+
         elif direction != 180 and  not (direction-3 < cur_direction < direction+3):
-            diff = cur_direction - direction
+            diff = sin((cur_direction-direction)*pi/180)
             mod = 1 if diff > 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)
+            print(mod)
         else:
-            self.driveMotors(0.1 - breaker,0.1 - breaker)
+            mod = (0,0)
+            if direction == 180 and not (178 <= abs(cur_direction)):
+                mod = (0,0.05) if cur_direction < 0 else (0.05,0)
+            elif direction != 180 and  not (direction-2 < cur_direction < direction+2):
+                diff = sin((cur_direction-direction)*pi/180)
+                mod = (0.05,0) if diff > 0 else (0,0.05)
+            # diff = direction * cur_direction
+            # mod = (0.05,0) if diff > 0 else (0,0.05)
+            print(mod)
+            self.driveMotors(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
 
         self.detect_intersection()
+
+        # sin(cur-direction)
+        # 
+
 
     def detect_intersection(self):
         curr_orientation = None
@@ -248,6 +267,8 @@ class MyRob(CRobLinkAngs):
                 self.intersections.append((curr_orientation,'l'))
             if 'r' in  cross_roads:
                 self.intersections.append((curr_orientation,'r'))
+            # if 's' in cross_roads:
+            #     self.intersections.append((curr_orientation,'s'))
 
 
             
@@ -275,6 +296,8 @@ class MyRob(CRobLinkAngs):
         elif line[-2]:
             #print('Rotate slowly Right')
             self.driveMotors(+wheel_speed,0)
+        elif not any(line):
+            self.driveMotors(0.1,-0.1)
         elif not line[4]:
             #print('Rotate slowly Left 2')
             self.driveMotors(0,+wheel_speed)
@@ -294,6 +317,9 @@ class MyRob(CRobLinkAngs):
         if sum(line[4:]) == 3:
             #rotate right
             cross_roads.append('r')
+        # if sum(line[2:5]) > 0:
+        #     # path ahead
+        #     cross_roads.append('s')
        
         return cross_roads
 
