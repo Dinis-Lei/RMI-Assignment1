@@ -216,7 +216,7 @@ class MyRob(CRobLinkAngs):
                     else:
                         direction = 90
 
-                breaker = 0.06 if 0 < abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
+                breaker = 0.06 if 0 <= abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
 
                 self.move(direction, breaker)
                 self.detect_intersection()
@@ -229,23 +229,16 @@ class MyRob(CRobLinkAngs):
         if direction == 180 and not (177 <= abs(cur_direction)):
             mod = 1 if cur_direction < 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)
-            print(mod)
-
         elif direction != 180 and  not (direction-3 < cur_direction < direction+3):
             diff = sin((cur_direction-direction)*pi/180)
             mod = 1 if diff > 0 else -1
             self.driveMotors(0.05*mod, 0.05*-mod)
-            print(mod)
         else:
-            mod = (0,0)
-            if direction == 180 and not (178 <= abs(cur_direction)):
-                mod = (0,0.05) if cur_direction < 0 else (0.05,0)
-            elif direction != 180 and  not (direction-2 < cur_direction < direction+2):
-                diff = sin((cur_direction-direction)*pi/180)
-                mod = (0.05,0) if diff > 0 else (0,0.05)
+            diff = cur_direction - direction
+            mod = (0.05,0) if diff > 0 else (0,0.05) if diff < 0 else (0,0)
             # diff = direction * cur_direction
             # mod = (0.05,0) if diff > 0 else (0,0.05)
-            print(mod)
+            # print(mod)
             self.driveMotors(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
 
         self.detect_intersection()
@@ -282,7 +275,7 @@ class MyRob(CRobLinkAngs):
         # elif sum(line[0:3]) < sum(line[-3:]):
         #     line[0:3] = [0,0,0]
 
-        # print(line)
+        #print(line)
 
         if line[0] and line[1]:
             #print('Rotate Left')
@@ -297,7 +290,14 @@ class MyRob(CRobLinkAngs):
             #print('Rotate slowly Right')
             self.driveMotors(+wheel_speed,0)
         elif not any(line):
+            #print('Turn around')
             self.driveMotors(0.1,-0.1)
+        elif line[0] and not any(line[1:]):
+            #print("Turn slowly left 3")
+            self.driveMotors(0.05, +wheel_speed)
+        elif line[-1] and not any(line[:-1]):
+            #print("Turn slowly right 3")
+            self.driveMotors(+wheel_speed, 0.05)
         elif not line[4]:
             #print('Rotate slowly Left 2')
             self.driveMotors(0,+wheel_speed)
@@ -311,6 +311,7 @@ class MyRob(CRobLinkAngs):
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]
         cross_roads = []
+        print(line)
         if sum(line[:3]) == 3:
             #rotate left
             cross_roads.append('l')
