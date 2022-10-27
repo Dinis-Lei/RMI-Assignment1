@@ -51,26 +51,26 @@ class WorldMap():
 
         #print(abs_orientation, intersect_orientation, x, y)
 
-        # if intersect_orientation == 's':
-        #     mode_x = 0
-        #     mode_y = 0
-        #     # if abs_orientation == 'r':
-        #     #     mode_x = 1
-        #     # elif abs_orientation == 'l':
-        #     #     mode_x = -1
-        #     # elif abs_orientation == 'u':
-        #     #     mode_y = 1
-        #     # elif abs_orientation == 'd':
-        #     #     mode_y = -1
-        #     char = "-" if abs_orientation in ['l','r'] else "|"
-        #     self.grid[y+mode_y][x+mode_x] = char
-        #     self.graph.add_node(x+(mode_x*2), y+(mode_y*2))
-        #     self.graph.connect_nodes(x,y, x+(mode_x*2),y+(mode_y*2))
-        #     print("FORWARD!!!!!")
-        #     print("Adding path to position (", x+mode_x, ",", y+mode_y, ")")
-        #     print(f"ADD NODE: ({x+mode_x*2}, {y+mode_y*2})")
+        if intersect_orientation == 's':
+            mode_x = 0
+            mode_y = 0
+            if abs_orientation == 'r':
+                mode_x = 1
+            elif abs_orientation == 'l':
+                mode_x = -1
+            elif abs_orientation == 'u':
+                mode_y = 1
+            elif abs_orientation == 'd':
+                mode_y = -1
+            char = "-" if abs_orientation in ['l','r'] else "|"
+            self.grid[y+mode_y][x+mode_x] = char
+            self.graph.add_node(x+(mode_x*2), y+(mode_y*2))
+            self.graph.connect_nodes(x,y, x+(mode_x*2),y+(mode_y*2))
+            print("FORWARD!!!!!")
+            print("Adding path to position (", x+mode_x, ",", y+mode_y, ")")
+            print(f"ADD NODE: ({x+mode_x*2}, {y+mode_y*2})")
 
-        if abs_orientation == intersect_orientation: # down
+        elif abs_orientation == intersect_orientation: # down
             self.grid[y-1][x] = '|'
             self.graph.add_node(x, y-2)
             self.graph.connect_nodes(x,y, x,y-2)
@@ -110,7 +110,6 @@ class WorldMap():
                 print(f"ADD NODE: ({x-2}, {y})")
         else:
             print("Nothing happens...")
-
 
     def add_stub(self, orientation):
         
