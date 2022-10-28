@@ -48,8 +48,6 @@ class MyRob(CRobLinkAngs):
         path = [(26, 10), (26, 8), (28, 8)]
         target = path.pop(0)
 
-        reseter = 0
-
         while True:
             #print(f"{state= }")
             self.readSensors()
@@ -65,8 +63,12 @@ class MyRob(CRobLinkAngs):
                 print(self.measures.ground)
 
             if self.measures.endLed:
-                print(self.rob_name + " exiting")
+                print(self.robName + " exiting")
+                print(self.measures.time)
+                print(self.simTime)
                 quit()
+
+
 
             if state == 'stop' and self.measures.start:
                 if self.measures.beacon != -1:
@@ -101,16 +103,21 @@ class MyRob(CRobLinkAngs):
                 state = 'stop'
             elif state == "seek_stub":
                 print("SEEK STUB")
-                for node in self.map.graph.nodes:
-                    print(self.map.graph.nodes[node])
+                # for node in self.map.graph.nodes:
+                #     print(self.map.graph.nodes[node])
 
                 stubs = self.map.get_stubs()
+
+                if len(self.map.graph.get_beacons()) >= int(self.nBeacons):
+                    print("OLD STUBS:", stubs)
+                    stubs = self.map.filter_subs(stubs)
+                    print("NEW STUBS:", stubs)
 
                 if not stubs:
                     state = "finish"
                     self.map.print_beacons()
-                    self.measures.endLed = True
-                    return
+                    self.finish()
+                    continue
 
                 curr_stub = stubs.pop(0)
                 print(stubs)
@@ -147,7 +154,15 @@ class MyRob(CRobLinkAngs):
                     if self.measures.ground != -1:
                         print("----BEACON----", tar_x, tar_y, self.measures.ground)
                         self.map.graph.get_node(f"{tar_x}:{tar_y}").has_beacon = True
-
+                        # if len(self.map.graph.get_beacons()) >= int(self.nBeacons):
+                        #     self.map.change_sort()
+                    # if len(self.map.graph.get_beacons()) >= int(self.nBeacons):
+                    self.map.graph.spbb()
+                        # beacons = self.map.graph.get_beacons()
+                        # for beacon in beacons:
+                        #     print(f"{beacon.id}")
+                        #     for b2 in beacon.sptb:
+                        #         print(f"-- {b2}: {[n.id for n in beacon.sptb[b2]]}")
 
                     while self.intersections: 
                         intersect = self.intersections.pop()
@@ -232,51 +247,6 @@ class MyRob(CRobLinkAngs):
                 elif curr_orientation == 'd' and 0 <= cur_y%2 < 0.2:
                     self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
 
-
-            
-
-    def wander(self):
-        wheel_speed = 0.15
-        line = [x == '1' for x in self.measures.lineSensor]
-
-        # if sum(line[0:3]) > sum(line[-3:]):
-        #     line[-3:] = [0,0,0]
-        # elif sum(line[0:3]) < sum(line[-3:]):
-        #     line[0:3] = [0,0,0]
-
-        # print(line)
-
-        if line[0] and line[1]:
-            #print('Rotate Left')
-            self.driveMotors(-wheel_speed,+wheel_speed)
-        elif line[1]:
-            #print('Rotate slowly Left')
-            self.driveMotors(0,+wheel_speed)
-        elif line[-1] and line[-2]:
-            #print('Rotate Right')
-            self.driveMotors(+wheel_speed,-wheel_speed)
-        elif line[-2]:
-            #print('Rotate slowly Right')
-            self.driveMotors(+wheel_speed,0)
-        elif not any(line):
-            #print('Turn around')
-            self.driveMotors(0.1,-0.1)
-        elif line[0] and not any(line[1:]):
-            #print("Turn slowly left 3")
-            self.driveMotors(0.05, +wheel_speed)
-        elif line[-1] and not any(line[:-1]):
-            #print("Turn slowly right 3")
-            self.driveMotors(+wheel_speed, 0.05)
-        elif not line[4]:
-            #print('Rotate slowly Left 2')
-            self.driveMotors(0,+wheel_speed)
-        elif not line[2]:
-            #print('Rotate slowly Right 2')
-            self.driveMotors(+wheel_speed,0)
-        else:
-            #print('Go')
-            self.driveMotors(wheel_speed,wheel_speed)
-
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]
         cross_roads = []
@@ -292,15 +262,7 @@ class MyRob(CRobLinkAngs):
             cross_roads.append('s')
        
         return cross_roads
-
-    def rotate(self, goal):
-        if self.measures.compass - goal > 0:
-            self.driveMotors(+0.05, -0.05)
-        else:
-            self.driveMotors(-0.05, +0.05)          
-
-
-
+       
 class Map():
     def __init__(self, filename):
         tree = ET.parse(filename)

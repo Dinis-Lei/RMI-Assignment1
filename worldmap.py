@@ -1,6 +1,6 @@
 from copy import deepcopy
 from math import sqrt
-from graph import MyGraph
+from graph import MyGraph, Node
 
 class WorldMap():
 
@@ -11,6 +11,7 @@ class WorldMap():
         self.graph = MyGraph()
         self.graph.add_node(24, 10)
         self.map_output = "map.txt"
+        self.sort = self.sort1
         
     def add_pos(self, x, y) -> bool:
         ret = False # returns whether or not the bot is walking territory that's already been explored
@@ -22,14 +23,12 @@ class WorldMap():
             directions = [(0,1), (0,-1), (1,0), (-1,0)]
             coords = [(x+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x+dir_x < 49 and 0 <= y+dir_y < 21]
             for coor_x, coor_y in coords:
-                print("COORS: ", coor_x, coor_y)
+                # print("COORS: ", coor_x, coor_y)
                 if self.grid[coor_y][coor_x] == ' ':
                     self.grid[coor_y][coor_x] = 'x'
-                    
-
         else: 
             ret = True
-        print(f"1 ADD NODE: ({x}, {y})")
+        # print(f"1 ADD NODE: ({x}, {y})")
 
         diff_x = x - self.curr_pos[0]
         diff_y = y - self.curr_pos[1]
@@ -71,48 +70,48 @@ class WorldMap():
             self.grid[y+mode_y][x+mode_x] = char
             self.graph.add_node(x+(mode_x*2), y+(mode_y*2))
             self.graph.connect_nodes(x,y, x+(mode_x*2),y+(mode_y*2))
-            print("FORWARD!!!!!")
-            print("Adding path to position (", x+mode_x, ",", y+mode_y, ")")
-            print(f"ADD NODE: ({x+mode_x*2}, {y+mode_y*2})")
+            # print("FORWARD!!!!!")
+            # print("Adding path to position (", x+mode_x, ",", y+mode_y, ")")
+            # print(f"ADD NODE: ({x+mode_x*2}, {y+mode_y*2})")
 
         elif abs_orientation == intersect_orientation: # down
             self.grid[y-1][x] = '|'
             self.graph.add_node(x, y-2)
             self.graph.connect_nodes(x,y, x,y-2)
-            print("Adding path to position (", x, ",", y-1, ")")
-            print(f"ADD NODE: ({x}, {y-2})")
+            # print("Adding path to position (", x, ",", y-1, ")")
+            # print(f"ADD NODE: ({x}, {y-2})")
         elif abs_orientation in ['r','l']: # up
             self.grid[y+1][x] = '|'
             self.graph.add_node(x, y+2)
             self.graph.connect_nodes(x,y, x,y+2)
-            print("Adding path to position (", x, ",", y+1, ")")
-            print(f"ADD NODE: ({x}, {y+2})")
+            # print("Adding path to position (", x, ",", y+1, ")")
+            # print(f"ADD NODE: ({x}, {y+2})")
         elif abs_orientation == 'u':
             if intersect_orientation == 'l': # left
                 self.grid[y][x-1] = '-'
                 self.graph.add_node(x-2, y)
                 self.graph.connect_nodes(x,y, x-2,y)
-                print("Adding path to position (", x-1, ",", y, ")")
-                print(f"ADD NODE: ({x-2}, {y})")
+                # print("Adding path to position (", x-1, ",", y, ")")
+                # print(f"ADD NODE: ({x-2}, {y})")
             else: # right
                 self.grid[y][x+1] = '-'
                 self.graph.add_node(x+2, y)
                 self.graph.connect_nodes(x,y, x+2,y)
-                print("Adding path to position (", x+1, ",", y, ")")
-                print(f"ADD NODE: ({x+2}, {y})")
+                # print("Adding path to position (", x+1, ",", y, ")")
+                # print(f"ADD NODE: ({x+2}, {y})")
         elif abs_orientation == 'd':
             if intersect_orientation == 'l': # right
                 self.grid[y][x+1] = '-'
                 self.graph.add_node(x+2, y)
                 self.graph.connect_nodes(x,y, x+2,y)
-                print("Adding path to position (", x+1, ",", y, ")")
-                print(f"ADD NODE: ({x+2}, {y})")
+                # print("Adding path to position (", x+1, ",", y, ")")
+                # print(f"ADD NODE: ({x+2}, {y})")
             else: # left
                 self.grid[y][x-1] = '-'
                 self.graph.add_node(x-2, y)
                 self.graph.connect_nodes(x,y, x-2,y)
-                print("Adding path to position (", x-1, ",", y, ")")
-                print(f"ADD NODE: ({x-2}, {y})")
+                # print("Adding path to position (", x-1, ",", y, ")")
+                # print(f"ADD NODE: ({x-2}, {y})")
         else:
             print("Nothing happens...")
 
@@ -121,8 +120,7 @@ class WorldMap():
         directions = [(0,1), (0,-1), (1,0), (-1,0)]
         for y in range(0,len(self.grid)):
             for x in range(0,len(self.grid[y])):
-                if self.grid[y][x] in [' ', '*']: continue
-                elif self.grid[y][x] == '-':
+                if self.grid[y][x] == '-':
                     if self.grid[y][x-1] != '*': 
                         coords = [(x-1+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x-1+dir_x < 49 and 0 <= y+dir_y < 21]
                         around = [self.grid[c_y][c_x] == ' ' for c_x, c_y in coords]
@@ -152,10 +150,44 @@ class WorldMap():
                             stubs.append((x,y+1))
                         else:
                             self.grid[y+1][x] = '*' 
-        stubs.sort(key=lambda x: (distance_manhatan(self.curr_pos,x), not self.graph.get_node(f"{x[0]}:{x[1]}").is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")))) 
+        stubs.sort(key=self.sort) 
         return stubs
 
+    def filter_subs(self, stubs):
+        beacons = self.graph.get_beacons()
+        idx = []
+        # print("FILTER")
+        for i in range(len(stubs)):
+            stub = self.graph.get_node(f"{stubs[i][0]}:{stubs[i][1]}")
+            # print(stub.id)
+            #beacon = sorted([b for b in beacons], key=lambda node : self.distance_manhatan((node.x, node.y), (stub.x, stub.y))).pop(0)
+            for beacon in beacons:
+                for b2 in beacon.sptb:
+                    beacon2 = self.graph.get_node(b2)
+                    # print(b2, len(beacon.sptb[b2]), len(self.graph.shortest_path(beacon, stub)) + self.distance_manhatan((beacon2.x, beacon2.y), (stub.x, stub.y)))
+                    if len(beacon.sptb[b2]) > len(self.graph.shortest_path(beacon, stub)) + self.distance_manhatan((beacon2.x, beacon2.y), (stub.x, stub.y)):
+                        idx.append(i)
+                        break
 
+        new_stubs = [stubs[i] for i in idx]
+        return new_stubs
+
+    def sort1(self, x):
+        return (self.distance_manhatan(self.curr_pos, x), 
+                not self.graph.get_node(f"{x[0]}:{x[1]}").is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}"))) 
+
+    def sort2(self, node):
+        beacons = self.graph.get_beacons()
+        beacon_dist = self.distance_manhatan(self.curr_pos, node)
+        for beacon in beacons:
+            x = beacon.x
+            y = beacon.y
+            beacon_dist += self.distance_manhatan((node[0], node[1]), (x, y))
+
+        return (beacon_dist, self.distance_manhatan(self.curr_pos, node))
+
+    def distance_manhatan(self, pos1, pos2):
+        return abs(pos1[0]-pos2[0])+abs(pos1[1]-pos2[1])
 
     def print_map(self):
         for l in self.grid:
@@ -207,9 +239,4 @@ class WorldMap():
                     #node = self.graph.get_node(node_id)
                     file.write(f"{node.x - 24} {node.y - 10}")
                     file.write('\n')
-
-
-
-def distance_manhatan(pos1, pos2):
-    return abs(pos1[0]-pos2[0])+abs(pos1[1]-pos2[1])
 

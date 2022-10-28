@@ -1,4 +1,3 @@
-
 class Node():
 
     def __init__(self, x, y) -> None:
@@ -7,6 +6,7 @@ class Node():
         self.y = y
         self.connected_nodes = []
         self.has_beacon = False
+        self.sptb = {} # shortest path to beacons
 
     def connect_node(self, node) -> None:
         if node not in self.connected_nodes:
@@ -17,6 +17,9 @@ class Node():
 
     def __str__(self) -> str:
         return f"{self.id}, {[n.id for n in self.connected_nodes]}"
+
+    def __eq__(self, __o: object) -> bool:
+        return self.id == __o.id
 
 
 class MyGraph():
@@ -53,7 +56,7 @@ class MyGraph():
     def get_node(self, node) -> Node:
         return self.nodes[node]
         
-    def get_beacons(self):
+    def get_beacons(self) -> 'list[Node]':
         beacons = [self.nodes[node] for node in self.nodes if self.nodes[node].has_beacon]
         return beacons
 
@@ -81,6 +84,14 @@ class MyGraph():
             return []
         min_path = min(paths, key=lambda x: len(x))
         return min_path
+
+    def spbb(self):
+        """ Shortest Path Between Beacons"""
+        beacons = self.get_beacons()
+        for beacon1 in beacons:
+            for beacon2 in beacons:
+                if beacon1 == beacon2: continue
+                beacon1.sptb[beacon2.id] = self.shortest_path(beacon1, beacon2)
 
 if __name__ == "__main__":
 
