@@ -15,6 +15,7 @@ class MyRob(CRobLinkAngs):
         CRobLinkAngs.__init__(self, rob_name, rob_id, angles, host)
         self.direction = 0 # Right
         self.map = WorldMap()
+        self.map.map_output = "map3.txt"
 
 
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
@@ -32,7 +33,7 @@ class MyRob(CRobLinkAngs):
             quit()
 
         state = 'stop' ####
-        stopped_state = 'run'
+        stopped_state = 'seek_stub'
 
         self.init_pos = None
         prev_loc = None
@@ -55,77 +56,49 @@ class MyRob(CRobLinkAngs):
 
             # self.driveMotors(0.05,-0.05)
             # print(self.measures.compass)
-
-
             if not self.init_pos:
                 self.init_pos = (self.measures.x, self.measures.y)
                 prev_loc = [24, 10]
                 print(prev_loc)
+                print(self.nBeacons)
+                print(self.measures.beacon)
+                print(self.measures.ground)
 
             if self.measures.endLed:
                 print(self.rob_name + " exiting")
                 quit()
 
             if state == 'stop' and self.measures.start:
+                if self.measures.beacon != -1:
+                    self.map.graph.get_node("24:10").has_beacon = True
+
+                cross_roads = self.detect_cross_roads()
+                curr_orientation = None
+                if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
+                elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
+                elif 175 < abs(self.measures.compass) <= 180: curr_orientation = 'l' #left
+                elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
+
+                # print(cross_roads)
+                if 'l' in cross_roads: # relative to the robot orientation
+                    self.intersections.append((curr_orientation,'l', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
+                if 'r' in  cross_roads:
+                    self.intersections.append((curr_orientation,'r', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
+                if 's' in cross_roads:
+                    self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
+                    
+                while self.intersections:
+                    intersect = self.intersections.pop()
+                    print("Intersect:", intersect)
+                    self.map.add_intersect(intersect[0],intersect[1]) 
                 state = stopped_state
+                self.map.print_to_file()
+                
                 #self.driveMotors(0,0)
 
             if state != 'stop' and self.measures.stop:
                 stopped_state = state
                 state = 'stop'
-                
-            if state == 'run':
-                cur_loc = [self.measures.x, self.measures.y]
-
-                repeat = False
-
-                cur_x = cur_loc[0] - self.init_pos[0] + 24
-                cur_y = cur_loc[1] - self.init_pos[1] + 10
-
-                if abs(prev_loc[0] - cur_x) >= 2:
-                    count = 1
-                    print("VERTICE")
-                    print(cur_loc, prev_loc)
-                    print(cur_x, cur_y)
-                    self.map.add_pos(round(cur_x), prev_loc[1])
-                    prev_loc[0] = round(cur_x)
-                    print("------")
-                    while self.intersections:
-                        intersect = self.intersections.pop()
-                        print("Intersect:", intersect)
-                        self.map.add_intersect(intersect[0],intersect[1]) 
-                elif abs(prev_loc[1] - cur_y) >= 2:
-                    count = 1
-                    print("VERTICE")
-                    print(cur_loc, prev_loc)
-                    print(cur_x, cur_y)
-                    self.map.add_pos(prev_loc[0], round(cur_y))
-                    prev_loc[1] = round(cur_y)
-                    print("------")
-                    while self.intersections:
-                        intersect = self.intersections.pop()
-                        print("Intersect:", intersect)
-                        self.map.add_intersect(intersect[0],intersect[1]) 
-                
-                if prev_loc[0] == 24 and prev_loc[1] == 10 and count != 0:
-                    repeat = True
-                
-                self.map.print_to_file()
-
-                self.detect_intersection()
-                
-                if not repeat:
-                    self.wander()
-                else:
-                    print("STUB SEEKING STARTED")
-                    # self.driveMotors(0,0)
-                    # stubs = self.map.get_stubs()
-                    # if stubs:
-                    #     curr_stub = self.map.get_stubs().pop(0)
-                    # else:
-                    #     quit() # map found?
-                    state = "seek_stub"
-
             elif state == "seek_stub":
                 print("SEEK STUB")
                 for node in self.map.graph.nodes:
@@ -135,6 +108,7 @@ class MyRob(CRobLinkAngs):
 
                 if not stubs:
                     state = "finish"
+                    self.map.print_beacons()
                     return
 
                 curr_stub = stubs.pop(0)
@@ -168,6 +142,11 @@ class MyRob(CRobLinkAngs):
                     print("POS:", tar_x, tar_y)
                     # Reached desired node
                     self.map.add_pos(tar_x, tar_y)
+
+                    if self.measures.ground != -1:
+                        print("----BEACON----", tar_x, tar_y, self.measures.ground)
+                        self.map.graph.get_node(f"{tar_x}:{tar_y}").has_beacon = True
+
 
                     while self.intersections: 
                         intersect = self.intersections.pop()
@@ -230,6 +209,7 @@ class MyRob(CRobLinkAngs):
 
         if curr_orientation:
             cross_roads = self.detect_cross_roads()
+            # print(cross_roads)
             if 'l' in cross_roads: # relative to the robot orientation
                 self.intersections.append((curr_orientation,'l', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
             if 'r' in  cross_roads:
@@ -238,13 +218,14 @@ class MyRob(CRobLinkAngs):
                 cur_loc = [self.measures.x, self.measures.y]
                 cur_x = cur_loc[0] - self.init_pos[0] + 24
                 cur_y = cur_loc[1] - self.init_pos[1] + 10
-                if curr_orientation == 'r' and 2 > cur_x%2 > 1.8:
+                # print(cur_x, cur_y)
+                if curr_orientation == 'r' and 2 >= cur_x%2 > 1.8:
                     self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                elif curr_orientation == 'l' and 0 < cur_x%2 < 0.2:
+                elif curr_orientation == 'l' and 0 <= cur_x%2 < 0.2:
                     self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                elif curr_orientation == 'u' and 2 > cur_y%2 > 1.8:
+                elif curr_orientation == 'u' and 2 >= cur_y%2 > 1.8:
                     self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                elif curr_orientation == 'd' and 0 < cur_y%2 < 0.2:
+                elif curr_orientation == 'd' and 0 <= cur_y%2 < 0.2:
                     self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
 
 
@@ -259,7 +240,7 @@ class MyRob(CRobLinkAngs):
         # elif sum(line[0:3]) < sum(line[-3:]):
         #     line[0:3] = [0,0,0]
 
-        #print(line)
+        # print(line)
 
         if line[0] and line[1]:
             #print('Rotate Left')
@@ -344,7 +325,7 @@ class Map():
            i=i+1
 
 
-rob_name = "C2Rob"
+rob_name = "C3Rob"
 host = "localhost"
 pos = 1
 mapc = None

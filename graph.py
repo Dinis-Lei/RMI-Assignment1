@@ -6,7 +6,7 @@ class Node():
         self.x = x
         self.y = y
         self.connected_nodes = []
-
+        self.has_beacon = False
 
     def connect_node(self, node) -> None:
         if node not in self.connected_nodes:
@@ -53,6 +53,9 @@ class MyGraph():
     def get_node(self, node) -> Node:
         return self.nodes[node]
         
+    def get_beacons(self):
+        beacons = [self.nodes[node] for node in self.nodes if self.nodes[node].has_beacon]
+        return beacons
 
     def __str__(self) -> str:
         string = ""
