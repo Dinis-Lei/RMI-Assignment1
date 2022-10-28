@@ -195,9 +195,12 @@ class MyRob(CRobLinkAngs):
         #print(f"{cur_direction}, {direction}, {breaker}, {diff}")
         if abs(sin(diff)) > sin(3 * pi/180) or cos(diff) < 0:
             mod = 1 if sin(diff) > 0 else -1
-            self.driveMotors(0.05*mod, 0.05*-mod)
+            acc = 0.05 if cos(diff) <= 0 else abs(sin(diff))/20
+            power = 0.05 + acc
+
+            self.driveMotors(power*mod, power*-mod)
         else:
-            mod = (0.05,0) if sin(diff) > 0 else (0,0.05) if sin(diff) < 0 else (0,0)
+            mod = (abs(sin(diff))/10,0) if sin(diff) > 0 else (0,abs(sin(diff))/10) if sin(diff) < 0 else (0,0)
             self.driveMotors(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
 
     def detect_intersection(self):

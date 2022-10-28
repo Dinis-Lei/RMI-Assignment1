@@ -17,6 +17,15 @@ class WorldMap():
         if self.grid[y][x] == ' ':
             self.grid[y][x] = '*'
             self.graph.add_node(x, y)
+
+            directions = [(0,1), (0,-1), (1,0), (-1,0)]
+            coords = [(x+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x+dir_x < 49 and 0 <= y+dir_y < 21]
+            for coor_x, coor_y in coords:
+                print("COORS: ", coor_x, coor_y)
+                if self.grid[coor_y][coor_x] == ' ':
+                    self.grid[coor_y][coor_x] = 'x'
+                    
+
         else: 
             ret = True
         print(f"1 ADD NODE: ({x}, {y})")
@@ -106,6 +115,47 @@ class WorldMap():
         else:
             print("Nothing happens...")
 
+    def get_stubs(self) -> list:
+        stubs = []
+        directions = [(0,1), (0,-1), (1,0), (-1,0)]
+        for y in range(0,len(self.grid)):
+            for x in range(0,len(self.grid[y])):
+                if self.grid[y][x] in [' ', '*']: continue
+                elif self.grid[y][x] == '-':
+                    if self.grid[y][x-1] != '*': 
+                        coords = [(x-1+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x-1+dir_x < 49 and 0 <= y+dir_y < 21]
+                        around = [self.grid[c_y][c_x] == ' ' for c_x, c_y in coords]
+                        if any(around):
+                            stubs.append((x-1,y))
+                        else:
+                            self.grid[y][x-1] = '*'
+                    if self.grid[y][x+1] != '*':
+                        coords = [(x+1+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x+1+dir_x < 49 and 0 <= y+dir_y < 21]
+                        around = [self.grid[c_y][c_x] == ' ' for c_x, c_y in coords]
+                        if any(around):
+                            stubs.append((x+1,y))
+                        else:
+                            self.grid[y][x+1] = '*'
+                elif self.grid[y][x] == '|':
+                    if self.grid[y-1][x] != '*':
+                        coords = [(x+dir_x, y-1+dir_y) for dir_x, dir_y in directions if 0 <= x+dir_x < 49 and 0 <= y-1+dir_y < 21]
+                        around = [self.grid[c_y][c_x] == ' ' for c_x, c_y in coords]
+                        if any(around):
+                            stubs.append((x,y-1))
+                        else:
+                            self.grid[y-1][x] = '*'
+                    if self.grid[y+1][x] != '*':
+                        coords = [(x+dir_x, y+1+dir_y) for dir_x, dir_y in directions if 0 <= x+dir_x < 49 and 0 <= y+1+dir_y < 21]
+                        around = [self.grid[c_y][c_x] == ' ' for c_x, c_y in coords]
+                        if any(around):
+                            stubs.append((x,y+1))
+                        else:
+                            self.grid[y+1][x] = '*' 
+        stubs.sort(key=lambda x: (distance_manhatan(self.curr_pos,x), not self.graph.get_node(f"{x[0]}:{x[1]}").is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")))) 
+        return stubs
+
+
+
     def print_map(self):
         for l in self.grid:
             for c in l:
@@ -140,26 +190,10 @@ class WorldMap():
                 start = beacon
             
             for path in paths:
-                for node_id in path:
-                    node = self.graph.get_node(node_id)
+                for node in path:
+                    #node = self.graph.get_node(node_id)
                     file.write(f"{node.x - 24} {node.y - 10}")
                     file.write('\n')
-
-
-
-    def get_stubs(self) -> list:
-        stubs = []
-        for y in range(0,len(self.grid)):
-            for x in range(0,len(self.grid[y])):
-                if self.grid[y][x] in [' ', '*']: continue
-                elif self.grid[y][x] == '-':
-                    if self.grid[y][x-1] != '*': stubs.append((x-1,y))
-                    if self.grid[y][x+1] != '*': stubs.append((x+1,y)) 
-                elif self.grid[y][x] == '|':
-                    if self.grid[y-1][x] != '*': stubs.append((x,y-1))
-                    if self.grid[y+1][x] != '*': stubs.append((x,y+1))
-        stubs.sort(key=lambda x: (distance_manhatan(self.curr_pos,x), not self.graph.get_node(f"{x[0]}:{x[1]}").is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")))) 
-        return stubs
 
 
 
