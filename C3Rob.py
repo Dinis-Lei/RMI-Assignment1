@@ -109,6 +109,7 @@ class MyRob(CRobLinkAngs):
                 if not stubs:
                     state = "finish"
                     self.map.print_beacons()
+                    self.measures.endLed = True
                     return
 
                 curr_stub = stubs.pop(0)

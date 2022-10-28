@@ -183,7 +183,7 @@ class WorldMap():
         file = open("myrob.map","w")
         for i in range(len(output_grid)-1, -1, -1):
             for c in output_grid[i]:
-                if c == "*": c = ' '
+                if c in ["*", "x"]: c = ' '
                 file.write(c)
             file.write('\n')
         file.close()
