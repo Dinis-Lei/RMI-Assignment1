@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import sqrt
 from graph import MyGraph
 
@@ -125,6 +126,18 @@ class WorldMap():
             file.write('\n')
             l_count -= 1
         file.close()
+
+    def print_output_map(self):
+        output_grid = deepcopy(self.grid)
+        output_grid[10][24] = 'I'
+        file = open("myrob.map","w")
+        for i in range(len(output_grid)-1, -1, -1):
+            for c in output_grid[i]:
+                if c == "*": c = ' '
+                file.write(c)
+            file.write('\n')
+        file.close()
+
 
     def print_beacons(self):
         with open("beacon.txt", "w") as file:

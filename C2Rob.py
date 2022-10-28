@@ -135,6 +135,7 @@ class MyRob(CRobLinkAngs):
 
                 if not stubs:
                     state = "finish"
+                    self.map.print_output_map()
                     return
 
                 curr_stub = stubs.pop(0)
