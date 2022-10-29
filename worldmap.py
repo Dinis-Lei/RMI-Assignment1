@@ -1,4 +1,5 @@
 from copy import deepcopy
+from itertools import permutations
 from math import sqrt
 from graph import MyGraph, Node
 
@@ -225,18 +226,28 @@ class WorldMap():
         with open("beacon.txt", "w") as file:
 
             beacons = self.graph.get_beacons()
-            beacons = beacons + [beacons[0]]
+            perms = permutations(range(1,len(beacons)))
 
-            start = beacons[0]
-            paths = []
-            for beacon in beacons[1:]:
-                path = self.graph.shortest_path(start, beacon)[:-1]
-                paths.append(path)
-                start = beacon
+            solutions = []
+            for perm in perms: 
+                sequence = [beacons[0]] + [beacons[i] for i in perm] + [beacons[0]]
+                start = sequence[0]
+                paths = []
+                size = 0
+                for beacon in sequence[1:]:
+                    path = self.graph.shortest_path(start, beacon)[:-1]
+                    size += len(path) 
+                    paths.append(path)
+                    start = beacon
+                solutions.append((size,paths))
+
+            solution = min(solutions, key= lambda x: x[0])[1]
             
-            for path in paths:
+            for path in solution:
                 for node in path:
                     #node = self.graph.get_node(node_id)
                     file.write(f"{node.x - 24} {node.y - 10}")
                     file.write('\n')
+            file.write(f"0 0")
+            file.write('\n')
 
