@@ -17,7 +17,7 @@ class MyRob(CRobLinkAngs):
         self.direction = 0 # Right
         self.map = WorldMap()
         self.map.map_output = "map4.txt"
-        
+        self.line_history = [[0 for _ in range(7)] for _ in range(3)]
 
 
     # In this map the center of cell (i,j), (i in 0..6, j in 0..13) is mapped to labMap[i*2][j*2].
@@ -37,7 +37,7 @@ class MyRob(CRobLinkAngs):
         state = 'stop' ####
         stopped_state = 'seek_stub'
 
-        self.init_pos = (24, 10)
+        self.init_pos = None
         self.locator = locator.Locator(24, 10)
         prev_loc = None
         self.intersections = []
@@ -47,7 +47,7 @@ class MyRob(CRobLinkAngs):
         stub_seeking = False
         curr_stub = None
         path = []
-
+        flg = False
         while True:
             self.readSensors()
 
@@ -57,30 +57,41 @@ class MyRob(CRobLinkAngs):
                 print(self.simTime)
                 quit()
 
+            if not self.init_pos:
+                self.init_pos = (self.measures.x, self.measures.y)
 
 
             if state == 'stop' and self.measures.start:
                 if self.measures.beacon != -1:
                     self.map.graph.get_node("24:10").has_beacon = self.measures.beacon
                 
-                cross_roads = self.detect_cross_roads()
                 curr_orientation = None
-                if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
-                elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
-                elif 175 < abs(self.measures.compass) <= 180: curr_orientation = 'l' #left
-                elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
+                if -5 < self.measures.compass < 5: curr_orientation = 0 # right
+                elif 85 < self.measures.compass < 95: curr_orientation = 90 # up
+                elif 175 < abs(self.measures.compass) <= 180: curr_orientation = 180 #left
+                elif -95 < self.measures.compass < -85: curr_orientation= -90 #down
 
-                if 'l' in cross_roads: # relative to the robot orientation
-                    self.intersections.append((curr_orientation,'l', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                if 'r' in  cross_roads:
-                    self.intersections.append((curr_orientation,'r', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                if 's' in cross_roads:
-                    self.intersections.append((curr_orientation,'s', self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10, self.measures.lineSensor, self.measures.compass))
-                    
-                while self.intersections:
-                    intersect = self.intersections.pop()
-                    print("Intersect:", intersect)
-                    self.map.add_intersect(intersect[0],intersect[1]) 
+
+                line_x = round(self.locator.x + 0.3*cos(self.measures.compass*pi/180), 2)
+                line_y = round(self.locator.y + 0.3*sin(self.measures.compass*pi/180), 2)
+
+                line_coords = (line_x, line_y)
+
+                cur_x = round(line_x)
+                cur_y = round(line_y)
+
+                cur_coords = (cur_x, cur_y)
+
+                print(f"Pos: ({line_x}, {line_y}), ({cur_x}, {cur_y}), ({self.locator.x}, {self.locator.y}), {self.measures.compass}")
+
+                if curr_orientation is not None:
+                    cross_roads = self.detect_cross_roads2()
+                    print(cross_roads)
+                    for road in cross_roads:
+                        if road == 0 and not self.between((self.locator.x-0.1, self.locator.y-0.1), cur_coords, line_coords, self.measures.compass):
+                            continue
+                        self.map.add_intersect2(curr_orientation, road, cur_x, cur_y)
+
                 state = stopped_state
                 self.map.print_to_file()
 
@@ -90,7 +101,7 @@ class MyRob(CRobLinkAngs):
             elif state == "seek_stub":
                 state = self.seek_stub()
             elif state == "move_to":
-                print(self.locator)
+                # print(self.locator)
 
 
                 tar_x = self.target.x
@@ -100,7 +111,7 @@ class MyRob(CRobLinkAngs):
                 cur_y = self.locator.y
 
                 if abs(cur_x-tar_x) < 0.05 and abs(cur_y-tar_y) < 0.05:
-
+                    print("TARGET HIT")
                     self.map.add_pos(tar_x, tar_y)
 
                     if self.measures.ground != -1:
@@ -140,23 +151,21 @@ class MyRob(CRobLinkAngs):
                 breaker = 0
                 direction = 0
 
-                if cur_x != tar_x:
-                    diff = cur_x - tar_x
-                    if diff < 0:
-                        direction = 0
-                    else:
-                        direction = 180
-                elif cur_y != tar_y:
-                    diff = cur_y - tar_y
-                    if diff > 0:
-                        direction = -90
-                    else:
-                        direction = 90
+                diff_x = cur_x - tar_x
+                diff_y = cur_y - tar_y
+
+                if abs(diff_x) > abs(diff_y):
+                    diff = diff_x
+                    direction = 0 if diff_x < 0 else 180
+                else:
+                    diff = diff_y
+                    direction = 90 if diff_y < 0 else -90
 
                 breaker = 0.06 if 0 <= abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
 
                 self.move(direction, breaker)
-                self.detect_intersection()
+                self.detect_intersection2()
+                self.map.print_to_file()
 
 
             elif state == 'wander':
@@ -166,7 +175,7 @@ class MyRob(CRobLinkAngs):
         cur_direction = self.measures.compass   
         diff = (cur_direction-direction)*pi/180
         #print(f"{cur_direction}, {direction}, {breaker}, {diff}")
-        if abs(sin(diff)) > sin(3 * pi/180) or cos(diff) < 0:
+        if abs(sin(diff)) > sin(5 * pi/180) or cos(diff) < 0:
             mod = 1 if sin(diff) > 0 else -1
             acc = 0.05 if cos(diff) <= 0 else abs(sin(diff))/20
             power = 0.05 + acc
@@ -177,12 +186,66 @@ class MyRob(CRobLinkAngs):
             self.driveMotors(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
             self.locator.update(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
 
+    def between(self, border1, target, border2, orientation):
+        if not ( abs(sin(orientation*pi/180)) < sin(5 * pi/180) or abs(cos(orientation*pi/180)) < cos(5 * pi/180)):
+            return False
+
+        idx = 0 if abs(sin(orientation * pi/180)) < sin(5 * pi/180) else 1
+
+        return border1[idx] < target[idx] < border2[idx] or border1[idx] > target[idx] > border2[idx]
+
+    def detect_intersection2(self):
+        curr_orientation = None
+        if -5 <= self.measures.compass <= 5: curr_orientation = 0 # right
+        elif 85 <= self.measures.compass <= 95: curr_orientation = 90 # up
+        elif 175 <= abs(self.measures.compass) <= 180: curr_orientation = 180 #left
+        elif -95 <= self.measures.compass <= -85: curr_orientation= -90 #down
+
+
+        line_x = round(self.locator.x + 0.4*cos(self.measures.compass*pi/180), 2)
+        line_y = round(self.locator.y + 0.4*sin(self.measures.compass*pi/180), 2)
+
+        line_coords = (line_x, line_y)
+
+        cur_x = round(line_x)
+        cur_y = round(line_y)
+
+        cur_coords = (cur_x + 0.2*cos(self.measures.compass*pi/180), cur_y + 0.2*sin(self.measures.compass*pi/180))
+
+        print(f"GPS: ({self.measures.x - self.init_pos[0] + 24}, {self.measures.y - self.init_pos[1] + 10})")
+        print(f"Pos: ({line_x}, {line_y}), ({cur_x}, {cur_y}), ({self.locator.x}, {self.locator.y}), {self.measures.compass}")
+
+        if curr_orientation is not None:
+            cross_roads = self.detect_cross_roads2()
+            print(cross_roads)
+            for road in cross_roads:
+                if road == 0 and not self.between((self.locator.x, self.locator.y), cur_coords, line_coords, self.measures.compass):
+                    continue
+                self.map.add_intersect2(curr_orientation, road, cur_x, cur_y)
+
+    def detect_cross_roads2(self):
+        line = [x == '1' for x in self.measures.lineSensor]
+        #self.line_history = self.line_history[1:] + line
+        cross_roads = []
+        print(line)
+        if sum(line[:4]) > 3:
+            #rotate left
+            cross_roads.append(-90)
+        if sum(line[3:]) > 3:
+            #rotate right
+            cross_roads.append(90)
+        if sum(line[2:5]) > 1:
+            # path ahead
+            cross_roads.append(0)
+       
+        return cross_roads
+
     def detect_intersection(self):
         curr_orientation = None
-        if -5 < self.measures.compass < 5: curr_orientation = 'r' # right
-        elif 85 < self.measures.compass < 95: curr_orientation = 'u' # up
-        elif 175 < abs(self.measures.compass) <= 180: curr_orientation = 'l' #left
-        elif -95 < self.measures.compass < -85: curr_orientation= 'd' #down
+        if -5 <= self.measures.compass <= 5: curr_orientation = 'r' # right
+        elif 85 <= self.measures.compass <= 95: curr_orientation = 'u' # up
+        elif 175 <= abs(self.measures.compass) <= 180: curr_orientation = 'l' #left
+        elif -95 <= self.measures.compass <= -85: curr_orientation= 'd' #down
 
         cur_x = self.locator.x
         cur_y = self.locator.y
@@ -192,6 +255,7 @@ class MyRob(CRobLinkAngs):
             # print(cross_roads)
             if 'l' in cross_roads: # relative to the robot orientation
                 self.intersections.append((curr_orientation,'l',cur_x, cur_y, self.measures.lineSensor, self.measures.compass))
+                # self.map.add_intersect(curr_orientation, 'l')
             if 'r' in  cross_roads:
                 self.intersections.append((curr_orientation,'r',cur_x, cur_y, self.measures.lineSensor, self.measures.compass))
             if 's' in cross_roads:
@@ -207,15 +271,16 @@ class MyRob(CRobLinkAngs):
 
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]
+        #self.line_history = self.line_history[1:] + line
         cross_roads = []
         #print(line)
-        if sum(line[:4]) == 4:
+        if sum(line[:4]) >= 3:
             #rotate left
             cross_roads.append('l')
-        if sum(line[3:]) == 4:
+        if sum(line[3:]) >= 3:
             #rotate right
             cross_roads.append('r')
-        if sum(line[2:5]) > 0:
+        if sum(line[2:5]) > 1:
             # path ahead
             cross_roads.append('s')
        

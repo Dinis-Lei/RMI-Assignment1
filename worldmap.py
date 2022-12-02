@@ -1,6 +1,6 @@
 from copy import deepcopy
 from itertools import permutations
-from math import sqrt
+from math import sqrt, sin, cos, pi
 from graph import MyGraph, Node
 
 class WorldMap():
@@ -34,25 +34,45 @@ class WorldMap():
         diff_x = x - self.curr_pos[0]
         diff_y = y - self.curr_pos[1]
  
-        if diff_x > 0: 
-            self.grid[y][x-1] = '-'   # left
-            self.graph.connect_nodes(x,y, x-2,y)
-        elif diff_x < 0: 
-            self.grid[y][x+1] = '-' # right
-            self.graph.connect_nodes(x,y, x+2,y)
-        elif diff_y > 0: 
-            self.grid[y-1][x] = '|' # up
-            self.graph.connect_nodes(x,y, x,y-2)
-        elif diff_y < 0: 
-            self.grid[y+1][x] = '|' # down
-            self.graph.connect_nodes(x,y, x,y+2)
+        # if diff_x > 0: 
+        #     self.grid[y][x-1] = '-'   # left
+        #     self.graph.connect_nodes(x,y, x-2,y)
+        # elif diff_x < 0: 
+        #     self.grid[y][x+1] = '-' # right
+        #     self.graph.connect_nodes(x,y, x+2,y)
+        # elif diff_y > 0: 
+        #     self.grid[y-1][x] = '|' # up
+        #     self.graph.connect_nodes(x,y, x,y-2)
+        # elif diff_y < 0: 
+        #     self.grid[y+1][x] = '|' # down
+        #     self.graph.connect_nodes(x,y, x,y+2)
 
         self.curr_pos = (x, y)
         return ret 
 
+    def add_intersect2(self, abs_or, int_or, x, y):
+        x = round(x)
+        y = round(y)
+        diff = (abs_or - int_or)*pi/180
+
+        off_x, off_y = int(cos(diff)), int(sin(diff))
+        char = '-' if (y + off_y) % 2 == 0 else '|'
+
+        if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0:
+            return
+
+        # print(f"Pos: ({x}, {y})")
+        print(f"Add: {x + off_x}, {y + off_y} : {char}")
+        print(f"{diff = }, {off_x = }, {off_y = }, {abs_or = }, {int_or = }")
+
+        self.grid[y+off_y][x+off_x] = char
+        for i in range(1,3):
+            self.graph.add_node(x + off_x*i, y + off_y*i)
+            self.graph.connect_nodes(x + off_x*(i-1),y + off_y*(i-1), x + off_x*i, y + off_y*i)
+
+
     def add_intersect(self, abs_orientation, intersect_orientation, offset=0): #substituir if else por dict
-        x = self.curr_pos[0]
-        y = self.curr_pos[1]
+        x, y = self.curr_pos
 
         #print(abs_orientation, intersect_orientation, x, y)
 
