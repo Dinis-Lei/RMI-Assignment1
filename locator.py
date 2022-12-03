@@ -1,4 +1,4 @@
-from math import sin, cos
+from math import sin, cos, pi
 
 class Locator:
     
@@ -14,13 +14,15 @@ class Locator:
 
 
 
-    def update(self, ml, mr):
+    def update(self, ml, mr, compass=None):
         
         new_out_r = (mr + self.out_r)/2
         new_out_l = (ml + self.out_l)/2
 
 
         lin = (new_out_r+new_out_l)/2
+        if compass:
+            self.rot = compass*pi/180
         mod_x = lin * cos(self.rot)
         mod_y = lin * sin(self.rot)
 

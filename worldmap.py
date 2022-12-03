@@ -195,7 +195,13 @@ class WorldMap():
 
     def sort1(self, x):
         return (self.distance_manhatan(self.curr_pos, x), 
-                not self.graph.get_node(f"{x[0]}:{x[1]}").is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}"))) 
+                not any(
+                    [
+                        node.is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")) 
+                        for node in self.graph.get_node(f"{x[0]}:{x[1]}").connected_nodes
+                    ]
+                )
+            ) 
 
     def sort2(self, node):
         beacons = self.graph.get_beacons()

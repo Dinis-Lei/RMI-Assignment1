@@ -184,7 +184,7 @@ class MyRob(CRobLinkAngs):
         else:
             mod = (abs(sin(diff))/10,0) if sin(diff) > 0 else (0,abs(sin(diff))/10) if sin(diff) < 0 else (0,0)
             self.driveMotors(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
-            self.locator.update(0.1 - breaker + mod[0], 0.1 - breaker + mod[1])
+            self.locator.update(0.1 - breaker + mod[0], 0.1 - breaker + mod[1], cur_direction)
 
     def between(self, border1, target, border2, orientation):
         if not ( abs(sin(orientation*pi/180)) < sin(5 * pi/180) or abs(cos(orientation*pi/180)) < cos(5 * pi/180)):
@@ -299,7 +299,7 @@ class MyRob(CRobLinkAngs):
             #self.map.print_beacons()
             self.finish()
             return "finish"
-
+        print(self.stubs)
         self.curr_stub = self.stubs.pop(0)
         print(self.curr_stub, self.map.curr_pos)
         pos = self.map.curr_pos
