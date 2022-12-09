@@ -13,7 +13,9 @@ class WorldMap():
         self.graph.add_node(24, 10)
         self.map_output = "map.txt"
         self.sort = self.sort1
+        self.queue = Queue(5)
         
+
     def add_pos(self, x, y) -> bool:
         ret = False # returns whether or not the bot is walking territory that's already been explored
         
@@ -50,6 +52,11 @@ class WorldMap():
         self.curr_pos = (x, y)
         return ret 
 
+    def remove_intersect(self, x, y):
+        x = round(x)
+        y = round(y)
+
+
     def add_intersect2(self, abs_or, int_or, x, y):
         x = round(x)
         y = round(y)
@@ -58,17 +65,21 @@ class WorldMap():
         off_x, off_y = int(cos(diff)), int(sin(diff))
         char = '-' if (y + off_y) % 2 == 0 else '|'
 
+        print(f"{diff = }, {off_x = }, {off_y = }, {abs_or = }, {int_or = }")
+        print(f"{x}, {y}")
         if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0:
             return
 
         # print(f"Pos: ({x}, {y})")
         print(f"Add: {x + off_x}, {y + off_y} : {char}")
-        print(f"{diff = }, {off_x = }, {off_y = }, {abs_or = }, {int_or = }")
+        
 
         self.grid[y+off_y][x+off_x] = char
         for i in range(1,3):
             self.graph.add_node(x + off_x*i, y + off_y*i)
             self.graph.connect_nodes(x + off_x*(i-1),y + off_y*(i-1), x + off_x*i, y + off_y*i)
+
+        
 
 
     def add_intersect(self, abs_orientation, intersect_orientation, offset=0): #substituir if else por dict
@@ -277,3 +288,19 @@ class WorldMap():
             file.write(f"0 0")
             file.write('\n')
 
+
+class Queue():
+
+    def __init__(self, size) -> None:
+        self.size = size
+        self.queue = []
+
+    def put(self, item):
+        if len(self.queue) >= self.size:
+            self.queue = self.queue[1:] 
+        self.queue += [item]
+
+    def pop(self):
+        item = self.queue[-1]
+        self.queue = self.queue[:-1]
+        return item
