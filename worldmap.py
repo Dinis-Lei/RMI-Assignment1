@@ -68,7 +68,10 @@ class WorldMap():
         print(f"{diff = }, {off_x = }, {off_y = }, {abs_or = }, {int_or = }")
         print(f"{x}, {y}")
         if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0:
-            return
+            return True
+        
+        if (y + off_y) % 2 != 0 and (x + off_x) % 2 != 0:
+            return False
 
         # print(f"Pos: ({x}, {y})")
         print(f"Add: {x + off_x}, {y + off_y} : {char}")
@@ -78,6 +81,7 @@ class WorldMap():
         for i in range(1,3):
             self.graph.add_node(x + off_x*i, y + off_y*i)
             self.graph.connect_nodes(x + off_x*(i-1),y + off_y*(i-1), x + off_x*i, y + off_y*i)
+        return True
 
         
 

@@ -49,6 +49,9 @@ class MyRob(CRobLinkAngs):
         path = []
         flg = False
 
+        self.readSensors()
+        self.init_pos = (self.measures.x, self.measures.y)
+
         while True:
             self.readSensors()
 
@@ -155,7 +158,7 @@ class MyRob(CRobLinkAngs):
                     diff = diff_y
                     direction = 90 if diff_y < 0 else -90
 
-                breaker = 0.06 if 0 <= abs(diff) < 0.2 else 0.03 if abs(diff) < 0.4 else 0
+                breaker = 0.05 if 0 <= abs(diff) < 0.2 else 0.025 if abs(diff) < 0.4 else 0
 
                 self.move(direction, breaker)
                 self.detect_intersection2()
@@ -174,17 +177,18 @@ class MyRob(CRobLinkAngs):
             acc = 0.05 if cos(diff) <= 0 else abs(sin(diff))/20
             power = 0.05 + acc
             self.driveMotors(power*mod, power*-mod)
-            self.locator.update(power*mod, power*-mod)
+            self.locator.update(power*mod, power*-mod, cur_direction)
         else:
-            mod = (abs(sin(diff))/10,0) if sin(diff) > 0 else (0,abs(sin(diff))/10) if sin(diff) < 0 else (0,0)
+            BASESPEED = 0.1
+            mod = 0,0#-sin(diff)/10, sin(diff)/10 #(abs(sin(diff))/10,0) if sin(diff) > 0 else (0,abs(sin(diff))/10) if sin(diff) < 0 else (0,0)
 
             line = [x == '1' for x in self.measures.lineSensor]
             mod2 = 0.03 * (not line[2]), 0.03 * (not line[4])
 
-            motor = 0.1 - breaker + mod[0] + mod2[1], 0.1 - breaker + mod[1] + mod2[1]
+            motor = BASESPEED - breaker + mod[0] + mod2[0], BASESPEED - breaker + mod[1] + mod2[1]
 
             print(f"Drive: ")
-            print(f"\t({0.1 - breaker + mod[0] + mod2[0]}, {0.1 - breaker + mod[1] + mod2[1]})")
+            print(f"\t{motor}")
             print(f"\t({breaker}, {breaker})")
             print(f"\t({mod[0]}, {mod[1]})")
             print(f"\t({mod2[0]}, {mod2[1]})")
@@ -217,6 +221,7 @@ class MyRob(CRobLinkAngs):
         # line sensor offset = 0.438
         # line thickness = 0.2
 
+        # Position of the line sensor
         line_x = round(self.locator.x + 0.438*cos(self.measures.compass*pi/180), 3)
         line_y = round(self.locator.y + 0.438*sin(self.measures.compass*pi/180), 3)
 
@@ -235,9 +240,10 @@ class MyRob(CRobLinkAngs):
             self.target.y - 0.2*sin(curr_orientation*pi/180)
         )
 
-        print(f"GPS: ({self.measures.x - self.init_pos[0] + 24}, {self.measures.y - self.init_pos[1] + 10})")
+        gps_x, gps_y = self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10
+        print(f"GPS: ({gps_x}, {gps_y})")
         print(f"Pos:")
-        print(f"\tLocator: ({self.locator.x}, {self.locator.y})")
+        print(f"\tLocator: ({self.locator.x}, {self.locator.y}) | ({abs((gps_x-self.locator.x)/gps_x)})")
         print(f"\tLine: ({line_x}, {line_y})")
         print(f"\tRound: ({cur_x}, {cur_y})")
         print(f"\tOrientation: {self.measures.compass}, {curr_orientation}")
@@ -248,10 +254,13 @@ class MyRob(CRobLinkAngs):
         cross_roads = self.detect_cross_roads()
         print(cross_roads)
         for road in cross_roads:
+            # If crossroad is forward and sensor between left-right intersection, ignore
             if road == 0 and self.between(border1=border1, target=line_coords, border2=border2, orientation=curr_orientation):
                 continue
+            # TODO: Backtrack
             if road == -180:
                 continue
+            # If detect left-right intersection line sensor coords are not in left-right intersection, update coords 
             if not self.between(border1=border1, target=line_coords, border2=border2, orientation=curr_orientation) and road not in [0, -180]:
                 idx = int(abs(sin(curr_orientation * pi/180)))
 
@@ -266,6 +275,12 @@ class MyRob(CRobLinkAngs):
                 cur_x = round(self.locator.x)
                 cur_y = round(self.locator.y)
 
+                line_x = round(self.locator.x + 0.438*cos(self.measures.compass*pi/180), 3)
+                line_y = round(self.locator.y + 0.438*sin(self.measures.compass*pi/180), 3)
+
+                line_coords = (line_x, line_y)
+
+            # If foward and robot isnt in the middle of an intersection, ignore
             if road == 0 and not self.between(border1=line_coords, target=(self.target.x, self.target.y), border2=(self.locator.x, self.locator.y), orientation=curr_orientation):
                 continue
 
@@ -273,7 +288,13 @@ class MyRob(CRobLinkAngs):
             #     cur_x = cur_x + cos(curr_orientation)
             #     cur_y = cur_y + sin(curr_orientation)
 
-            self.map.add_intersect2(curr_orientation, road, cur_x, cur_y)
+            flg = self.map.add_intersect2(curr_orientation, road, cur_x, cur_y)
+            if not flg:
+                idx = int(abs(sin(curr_orientation * pi/180)))
+                if idx:
+                    self.locator.y  -= int(sin(curr_orientation * pi/180))
+                else:
+                    self.locator.x  -=  int(cos(curr_orientation * pi/180))
 
     def detect_cross_roads(self):
         line = [x == '1' for x in self.measures.lineSensor]

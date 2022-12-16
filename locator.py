@@ -21,13 +21,15 @@ class Locator:
 
 
         lin = (new_out_r+new_out_l)/2
-        if compass:
-            self.rot = compass*pi/180
+        
         mod_x = lin * cos(self.rot)
         mod_y = lin * sin(self.rot)
 
         new_x = self.x + mod_x
         new_y = self.y + mod_y
+
+        # if compass:
+        #     self.rot = compass
 
         #new_line_x = self.line_x + mod_x
         #new_line_y = self.line_y + mod_y
@@ -39,9 +41,11 @@ class Locator:
         self.y = new_y
         #self.line_x = round(new_line_x, 2)
         #self.line_y = round(new_line_y, 2)
-        self.rot = rot
+        self.rot = rot if not compass else compass*pi/180
         self.out_r = new_out_r
         self.out_l = new_out_l
+
+        #print(f"Rot: {self.rot}")
 
         return self.x, self.y, self.rot
 
