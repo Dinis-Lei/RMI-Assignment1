@@ -13,8 +13,8 @@ class LineSensor:
         self.road = road
 
     def move(self, locator: Locator):
-        self.x = round(locator.x + self.dist*cos(self.ang*pi/180), 3)
-        self.y = round(locator.y + self.dist*sin(self.ang*pi/180), 3)
+        self.x = round(locator.x + self.dist*cos(self.ang*pi/180+locator.rot), 3)
+        self.y = round(locator.y + self.dist*sin(self.ang*pi/180+locator.rot), 3)
 
     def update(self, state):
         if len(self.state) > 2:
@@ -22,7 +22,7 @@ class LineSensor:
         self.state += [state]
 
     def get_state(self):
-        return sum(self.state) > 1
+        return sum(self.state) > (len(self.state)//2)
 
     def clear_state(self):
         self.state = []

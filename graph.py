@@ -30,6 +30,7 @@ class MyGraph():
     def add_node(self, x, y):
         if f"{x}:{y}" in self.nodes:
             return
+            
         print(f"Add Node: ({x}, {y})")
         node = Node(x,y)
         self.nodes[node.id] = node

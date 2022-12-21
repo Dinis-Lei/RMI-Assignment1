@@ -60,31 +60,27 @@ class WorldMap():
     def add_intersect2(self, abs_or, int_or, x, y):
         x = round(x)
         y = round(y)
-        diff = (abs_or - int_or)*pi/180
+        diff = (abs_or - int_or)*pi/180 # angle difference in radians
 
-        off_x, off_y = int(cos(diff)), int(sin(diff))
-        char = '-' if (y + off_y) % 2 == 0 else '|'
+        off_x, off_y = int(cos(diff)), int(sin(diff)) # 
+        char = '-' if (y + off_y) % 2 == 0 else '|' # orientation of the intersection (vertical or horizontal)
 
-        print(f"{diff = }, {off_x = }, {off_y = }, {abs_or = }, {int_or = }")
-        print(f"{x}, {y}")
-        if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0:
+        if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0: # Not an intersection, but a node
+            print(f"Not an intersection but a node! ({x+off_x},{y+off_y})")
             return True
         
-        if (y + off_y) % 2 != 0 and (x + off_x) % 2 != 0:
+        if (y + off_y) % 2 != 0 and (x + off_x) % 2 != 0: # Not an intersection, path can't exist here
+            print(f"Not an intersection! ({x+off_x},{y+off_y})")
             return False
 
-        # print(f"Pos: ({x}, {y})")
-        print(f"Add: {x + off_x}, {y + off_y} : {char}")
-        
+        print(f"Add Intersection: {x + off_x}, {y + off_y} : {char}")
 
-        self.grid[y+off_y][x+off_x] = char
-        for i in range(1,3):
-            self.graph.add_node(x + off_x*i, y + off_y*i)
-            self.graph.connect_nodes(x + off_x*(i-1),y + off_y*(i-1), x + off_x*i, y + off_y*i)
+        self.grid[y+off_y][x+off_x] = char # Update grid
+        for i in range(1,3): 
+            self.graph.add_node(x + off_x*i, y + off_y*i) # Add both following nodes
+            self.graph.connect_nodes(x + off_x*(i-1),y + off_y*(i-1), x + off_x*i, y + off_y*i) # Connect all nodes
         return True
-
         
-
 
     def add_intersect(self, abs_orientation, intersect_orientation, offset=0): #substituir if else por dict
         x, y = self.curr_pos
