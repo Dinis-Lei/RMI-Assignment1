@@ -51,3 +51,21 @@ class Locator:
 
     def __str__(self) -> str:
         return f"({self.x}, {self.y}) : {self.rot}"
+
+
+if __name__ == "__main__":
+    loc = Locator()
+
+    for i in range(11):
+        loc.update(0.1, 0.1)
+        print(loc.x, loc.y, loc.rot)
+
+    print("-"*10)
+    for i in range(4):
+        loc.update(0.1, 0.075)
+        print(loc.x, loc.y, loc.rot)
+
+    print("-"*10)
+    for i in range(4):
+        loc.update(0.065, 0.1)
+        print(loc.x, loc.y, loc.rot)
