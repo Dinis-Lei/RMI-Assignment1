@@ -220,6 +220,9 @@ class MyRob(CRobLinkAngs):
         diff = (cur_direction-direction)*pi/180 # difference in directions in radians
 
         if abs(sin(diff)) > sin(5 * pi/180) or cos(diff) < 0:
+            for sensor in self.linesensor:
+                sensor.clear_state()
+
             mod = 1 if sin(diff) > 0 else -1
             acc = 0.05 if cos(diff) <= 0 else abs(sin(diff))/20
             power = 0.05 + acc
@@ -265,10 +268,10 @@ class MyRob(CRobLinkAngs):
 
         # Check if lined up minimally with for intersection detection
         curr_orientation = None
-        if -5 <= self.measures.compass <= 5: curr_orientation = 0 # right
-        elif 85 <= self.measures.compass <= 95: curr_orientation = 90 # up
-        elif 175 <= abs(self.measures.compass) <= 180: curr_orientation = 180 #left
-        elif -95 <= self.measures.compass <= -85: curr_orientation= -90 #down
+        if -10 <= self.measures.compass <= 10: curr_orientation = 0 # right
+        elif 80 <= self.measures.compass <= 100: curr_orientation = 90 # up
+        elif 170 <= abs(self.measures.compass) <= 180: curr_orientation = 180 #left
+        elif -100 <= self.measures.compass <= -80: curr_orientation= -90 #down
 
         if curr_orientation is None or self.just_rotated: # Not lined up, we won't detect intersections...
             return
