@@ -5,7 +5,7 @@ class Node():
         self.x = x
         self.y = y
         self.connected_nodes = []
-        self.has_beacon = False
+        self.beacon = None
         self.sptb = {} # shortest path to beacons
 
     def connect_node(self, node) -> None:
@@ -15,8 +15,14 @@ class Node():
     def is_connected(self, node) -> bool:
         return node in self.connected_nodes
 
+    def has_beacon(self):
+        return self.beacon != None
+
     def __str__(self) -> str:
         return f"{self.id}, {[n.id for n in self.connected_nodes]}"
+
+    def __repr__(self) -> str:
+        return self.id
 
     def __eq__(self, __o: object) -> bool:
         return self.id == __o.id
@@ -25,7 +31,7 @@ class Node():
 class MyGraph():
 
     def __init__(self) -> None:
-        self.nodes = {}
+        self.nodes: dict[str, Node] = {}
 
     def add_node(self, x, y):
         if f"{x}:{y}" in self.nodes:
@@ -49,17 +55,17 @@ class MyGraph():
             self.nodes[f"{x}:{y+1}"].connect_node(self.nodes[node.id]) 
 
     def connect_nodes(self, x1, y1, x2, y2):
-        node1 = self.nodes[f"{x1}:{y1}"]
-        node2 = self.nodes[f"{x2}:{y2}"]
+        node1: Node = self.nodes[f"{x1}:{y1}"]
+        node2: Node = self.nodes[f"{x2}:{y2}"]
        
         node1.connect_node(node2)
         node2.connect_node(node1)
 
-    def get_node(self, node) -> Node:
-        return self.nodes[node]
+    def get_node(self, key: str) -> Node:
+        return self.nodes[key] if key in self.nodes else None
         
     def get_beacons(self) -> 'list[Node]':
-        beacons = [self.nodes[node] for node in self.nodes if self.nodes[node].has_beacon]
+        beacons = [(self.nodes[node],self.nodes[node].beacon) for node in self.nodes if self.nodes[node].has_beacon()]
         return beacons
 
     def __str__(self) -> str:

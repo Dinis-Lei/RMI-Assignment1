@@ -1,19 +1,19 @@
 from copy import deepcopy
 from itertools import permutations
-from math import sqrt, sin, cos, pi
+from math import sqrt, sin, cos, pi, atan2
 from graph import MyGraph, Node
 
 class WorldMap():
 
-    def __init__(self) -> None:
+    def __init__(self, name) -> None:
         self.grid = [[' ' for i in range(49) ] for j in range(21)]
         self.curr_pos = (24,10)
         self.grid[self.curr_pos[1]][self.curr_pos[0]] = '*'
         self.graph = MyGraph()
         self.graph.add_node(24, 10)
-        self.map_output = "map.txt"
         self.sort = self.sort1
         self.queue = Queue(5)
+        self.name = name
         
 
     def add_pos(self, x, y) -> bool:
@@ -67,7 +67,7 @@ class WorldMap():
 
         if (y + off_y) % 2 == 0 and (x + off_x) % 2 == 0: # Not an intersection, but a node
             print(f"Not an intersection but a node! ({x+off_x},{y+off_y})")
-            return True
+            return False
         
         if (y + off_y) % 2 != 0 and (x + off_x) % 2 != 0: # Not an intersection, path can't exist here
             print(f"Not an intersection! ({x+off_x},{y+off_y})")
@@ -147,7 +147,7 @@ class WorldMap():
         else:
             print("Nothing happens...")
 
-    def get_stubs(self) -> list:
+    def get_stubs(self, ang=0) -> list:
         stubs = []
         directions = [(0,1), (0,-1), (1,0), (-1,0)]
         for y in range(0,len(self.grid)):
@@ -182,6 +182,7 @@ class WorldMap():
                             stubs.append((x,y+1))
                         else:
                             self.grid[y+1][x] = '*' 
+        self.dir = ang
         stubs.sort(key=self.sort) 
         return stubs
 
@@ -204,6 +205,9 @@ class WorldMap():
         new_stubs = [stubs[i] for i in idx]
         return new_stubs
 
+    def get_angle(self, pos1, pos2):
+        return atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])*180/pi
+
     def sort1(self, x):
         return (self.distance_manhatan(self.curr_pos, x), 
                 not any(
@@ -211,7 +215,9 @@ class WorldMap():
                         node.is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")) 
                         for node in self.graph.get_node(f"{x[0]}:{x[1]}").connected_nodes
                     ]
-                )
+                ),
+                -abs(self.distance_manhatan(x, [24, 10])),
+                abs(sin((self.get_angle(self.curr_pos, x) - self.dir)*pi/180)),
             ) 
 
     def sort2(self, node):
@@ -234,7 +240,7 @@ class WorldMap():
             print('\n')
 
     def print_to_file(self):
-        file = open(self.map_output, "w")
+        file = open(f"{self.name}_map.txt", "w")
         file.write(" ")
         for i in range(49): file.write(str(i)[-1])
         file.write('\n')
@@ -248,19 +254,28 @@ class WorldMap():
         file.close()
 
     def print_output_map(self):
+        print("Writing map")
         output_grid = deepcopy(self.grid)
-        output_grid[10][24] = 'I'
-        file = open("myrob.map","w")
+        #output_grid[10][24] = '*'
+        file = open(f"{self.name}.map","w")
         for i in range(len(output_grid)-1, -1, -1):
+            x = 0
             for c in output_grid[i]:
-                if c in ["*", "x"]: c = ' '
+                if c == "*":
+                    if self.graph.get_node(f"{x}:{i}").has_beacon():
+                        c = str(self.graph.get_node(f"{x}:{i}").beacon)
+                    else:
+                        c = ' '
+                elif c == "x":
+                    c = ' '
                 file.write(c)
+                x += 1
             file.write('\n')
         file.close()
 
 
     def print_beacons(self):
-        with open("beacon.txt", "w") as file:
+        with open(f"{self.name}_beacon.txt", "w") as file:
 
             beacons = self.graph.get_beacons()
             perms = permutations(range(1,len(beacons)))
