@@ -1,6 +1,6 @@
 from copy import deepcopy
 from itertools import permutations
-from math import sqrt, sin, cos, pi
+from math import sqrt, sin, cos, pi, atan2
 from graph import MyGraph, Node
 
 class WorldMap():
@@ -147,7 +147,7 @@ class WorldMap():
         else:
             print("Nothing happens...")
 
-    def get_stubs(self) -> list:
+    def get_stubs(self, ang=0) -> list:
         stubs = []
         directions = [(0,1), (0,-1), (1,0), (-1,0)]
         for y in range(0,len(self.grid)):
@@ -182,6 +182,7 @@ class WorldMap():
                             stubs.append((x,y+1))
                         else:
                             self.grid[y+1][x] = '*' 
+        self.dir = ang
         stubs.sort(key=self.sort) 
         return stubs
 
@@ -204,6 +205,9 @@ class WorldMap():
         new_stubs = [stubs[i] for i in idx]
         return new_stubs
 
+    def get_angle(self, pos1, pos2):
+        return atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])*180/pi
+
     def sort1(self, x):
         return (self.distance_manhatan(self.curr_pos, x), 
                 not any(
@@ -211,7 +215,9 @@ class WorldMap():
                         node.is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")) 
                         for node in self.graph.get_node(f"{x[0]}:{x[1]}").connected_nodes
                     ]
-                )
+                ),
+                -abs(self.distance_manhatan(x, [24, 10])),
+                abs(sin((self.get_angle(self.curr_pos, x) - self.dir)*pi/180)),
             ) 
 
     def sort2(self, node):
