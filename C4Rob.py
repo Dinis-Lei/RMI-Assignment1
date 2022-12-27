@@ -44,6 +44,7 @@ class MyRob(CRobLinkAngs):
         self.readSensors()
         self.init_pos = (self.measures.x, self.measures.y)
         self.linesensor : list[LineSensor] = []
+        self.finish_flag = False
 
         self.just_rotated = False
 
@@ -129,6 +130,12 @@ class MyRob(CRobLinkAngs):
 
                 if abs(cur_x-tar_x) < 0.05 and abs(cur_y-tar_y) < 0.05: # Reached the target
                     print(f"Target hit: ({tar_x}, {tar_y})")
+                    if (tar_x,tar_y) == (24,10) and self.finish_flag:
+                        self.map.print_output_map()
+                        self.map.print_beacons()
+                        self.finish()
+                        state = "finish"
+                        continue
                     self.path.pop(0)
                     self.map.add_pos(tar_x, tar_y) # add target to map
 
@@ -409,10 +416,11 @@ class MyRob(CRobLinkAngs):
         self.stubs = self.map.get_stubs() # get map stubs
 
         if not self.stubs: # No stubs left, the map has been fully explored
-            self.finish()
-            return "finish" # New state
-
-        self.curr_stub = self.stubs.pop(0) # Get best stub to follow
+            self.curr_stub = (24, 10)
+            self.finish_flag = True
+        else:
+            self.curr_stub = self.stubs.pop(0) # Get best stub to follow
+        
         print(f"New stub: {self.curr_stub}, Current position: {self.map.curr_pos}")
         pos = self.map.curr_pos
         
@@ -424,7 +432,6 @@ class MyRob(CRobLinkAngs):
         self.target = self.path[0] # Next (immediate) target
 
         return "move_to" # New state
-
 
     def wander(self):
         center_id = 0
