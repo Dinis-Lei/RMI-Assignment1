@@ -263,8 +263,8 @@ class MyRob(CRobLinkAngs):
             mod3 = -0.01 if sum([s.get_state() for s in self.linesensor[:2]]) == 1 or sum([s.get_state() for s in self.linesensor[5:]]) == 1 else 0
 
             motor = (
-                    BASESPEED - breaker + mod[0] + mod2[0] + mod3[0] + mod3, 
-                    BASESPEED - breaker + mod[1] + mod2[1] + mod3[1] + mod3
+                    BASESPEED - breaker + mod1[0] + mod2[0] + mod3, 
+                    BASESPEED - breaker + mod1[1] + mod2[1] + mod3
             )
 
             self.driveMotors(motor[0], motor[1])
