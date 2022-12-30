@@ -21,6 +21,15 @@ class LineSensor:
             self.state = self.state[1:]
         self.state += [state]
 
+    def between(self):
+        if int(self.x)%2 == 0:
+            return self.y%1 < 0.2 or self.y%1 > 0.8 
+        elif int(self.y)%2 == 0:
+            return self.x%1 < 0.2 or self.x%1 > 0.8 
+        else:
+            return False
+            
+
     def get_state(self):
         return sum(self.state) > (len(self.state)//2)
 

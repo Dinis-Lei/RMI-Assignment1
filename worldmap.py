@@ -1,6 +1,7 @@
 from copy import deepcopy
 from itertools import permutations
 from math import sqrt, sin, cos, pi, atan2
+import time
 from graph import MyGraph, Node
 
 class WorldMap():
@@ -25,10 +26,10 @@ class WorldMap():
 
             directions = [(0,1), (0,-1), (1,0), (-1,0)]
             coords = [(x+dir_x, y+dir_y) for dir_x, dir_y in directions if 0 <= x+dir_x < 49 and 0 <= y+dir_y < 21]
-            for coor_x, coor_y in coords:
-                # print("COORS: ", coor_x, coor_y)
-                if self.grid[coor_y][coor_x] == ' ':
-                    self.grid[coor_y][coor_x] = 'x'
+            # for coor_x, coor_y in coords:
+            #     # print("COORS: ", coor_x, coor_y)
+            #     if self.grid[coor_y][coor_x] == ' ':
+            #         self.grid[coor_y][coor_x] = 'x'
         else: 
             ret = True
         # print(f"1 ADD NODE: ({x}, {y})")
@@ -209,16 +210,20 @@ class WorldMap():
         return atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])*180/pi
 
     def sort1(self, x):
-        return (self.distance_manhatan(self.curr_pos, x), 
-                not any(
-                    [
-                        node.is_connected(self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")) 
-                        for node in self.graph.get_node(f"{x[0]}:{x[1]}").connected_nodes
-                    ]
-                ),
-                -abs(self.distance_manhatan(x, [24, 10])),
-                abs(sin((self.get_angle(self.curr_pos, x) - self.dir)*pi/180)),
-            ) 
+
+        cur_node = self.graph.get_node(f"{self.curr_pos[0]}:{self.curr_pos[1]}")
+        x_node = self.graph.get_node(f"{x[0]}:{x[1]}")
+        begin_pos = (24, 10)
+
+        res = (
+            0.6*(len(self.graph.shortest_path(cur_node, x_node)))
+             + 0.4*(-abs(self.distance_manhatan(x, begin_pos)))
+        )
+
+        return (
+                res,
+                abs(self.get_angle(self.curr_pos, x) - self.dir)%180
+        )
 
     def sort2(self, node):
         beacons = self.graph.get_beacons()
@@ -287,7 +292,7 @@ class WorldMap():
                 paths = []
                 size = 0
                 for beacon in sequence[1:]:
-                    path = self.graph.shortest_path(start, beacon)[:-1]
+                    path = self.graph.shortest_path(start, beacon)[:-1:2]
                     size += len(path) 
                     paths.append(path)
                     start = beacon

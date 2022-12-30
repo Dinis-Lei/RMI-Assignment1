@@ -47,9 +47,14 @@ class MyRob(CRobLinkAngs):
 
         self.just_rotated = False
 
-        direction = None
+        ctr = 5
 
+        direction = None
+        prev_time = time.perf_counter()
         while True:
+            cur_time = time.perf_counter()
+            print(f"Loop: {cur_time - prev_time}")
+            prev_time = cur_time
             self.readSensors()
             #print(self.measures.time, self.simTime, self.measures.time == self.simTime)
             if int(self.measures.time) == int(self.simTime):
@@ -81,11 +86,12 @@ class MyRob(CRobLinkAngs):
                 self.path = []
                 
                 # Set up the line sensor
-                self.init_line_sensor()
+                if ctr == 5:
+                    self.init_line_sensor()
 
-                # Check if starting node has a beacon, if so, mark it
-                if self.measures.ground != -1:
-                    self.map.graph.get_node("24:10").beacon = self.measures.ground
+                    # Check if starting node has a beacon, if so, mark it
+                    if self.measures.ground != -1:
+                        self.map.graph.get_node("24:10").beacon = self.measures.ground
                 
                 # Get our current (absolute) orientation
                 curr_orientation = None
@@ -113,8 +119,12 @@ class MyRob(CRobLinkAngs):
                         #     continue
                         self.map.add_intersect2(curr_orientation, road, cur_x, cur_y) # Add detected intersections
 
-                state = stopped_state # Go to seek stub
+                # Rotate
+                self.driveMotors(-0.05, 0.05)
+                if curr_orientation == 0 and ctr < 0:
+                    state = stopped_state # Go to seek stub
                 self.map.print_to_file() # Update map file
+                ctr -= 1
                 #print("END STATE: start challenge")
 
             elif state != 'stop' and self.measures.stop:
@@ -132,7 +142,7 @@ class MyRob(CRobLinkAngs):
 
                 gps_x, gps_y = self.measures.x - self.init_pos[0] + 24, self.measures.y - self.init_pos[1] + 10
                 print(f"\tGPS: ({gps_x}, {gps_y}), Error: ({gps_x-self.locator.x},{gps_y-self.locator.y})")
-                print(f"\tLocator({self.locator.x},{self.locator.y})\n\tLine({round(line_x,1)}, {round(line_y,1)}), \n\tCompass({self.measures.compass})")
+                print(f"\tLocator({self.locator.x},{self.locator.y})\n\tCompass({self.measures.compass})")
                 
                 # Target coordinates
                 tar_x = self.target.x
@@ -146,26 +156,27 @@ class MyRob(CRobLinkAngs):
 
                 #print(f"Current Position: ({cur_x},{cur_y})")
                 if abs(cur_x-tar_x) < 0.05 and abs(cur_y-tar_y) < 0.05:
-                    print(f"Target hit: ({tar_x}, {tar_y})")
+                    #print(f"Target hit: ({tar_x}, {tar_y})")
                     if (tar_x,tar_y) == (24,10) and self.finish_flag:
+                        self.driveMotors(0,0)
                         self.map.print_output_map()
                         self.map.print_beacons()
                         self.finish()
                         state = "finish"
                         continue
-                    print(f"\t{self.locator.x}, {self.locator.y}")
+                    #print(f"\t{self.locator.x}, {self.locator.y}")
                     self.path.pop(0)
                     self.map.add_pos(tar_x, tar_y) # add target to map
 
                     if self.measures.ground != -1: # check if target has beacon
-                        print("NEW BEACON:", tar_x, tar_y, self.measures.ground)
+                        #print("NEW BEACON:", tar_x, tar_y, self.measures.ground)
                         self.map.graph.get_node(f"{tar_x}:{tar_y}").beacon = self.measures.ground
 
                     self.map.print_to_file() # Update map
 
                     if not self.path: # Path has ended
                         state = "seek_stub" # Seek a new stub
-                        print("Path done, seeking new stub...")
+                        #print("Path done, seeking new stub...")
                         self.driveMotors(0,0) # Break
                         continue
                     
@@ -173,8 +184,8 @@ class MyRob(CRobLinkAngs):
                     self.target = self.path[0] 
                     tar_x = self.target.x
                     tar_y = self.target.y
-                    print(f"New Target: ({tar_x},{tar_y})")
-                    print(f"Path: {[x.id for x in self.path]}")
+                    #print(f"New Target: ({tar_x},{tar_y})")
+                    #print(f"Path: {[x.id for x in self.path]}")
 
                     diff_x = cur_x - tar_x # Manhattam distance (x coord)
                     diff_y = cur_y - tar_y # Manhattam distance (y coord)
@@ -215,7 +226,7 @@ class MyRob(CRobLinkAngs):
                 self.wander()
 
     def move(self, direction, breaker):
-        print("Moving...")
+        #print("Moving...")
         cur_direction = self.measures.compass # our direction (may not match desired direction)  
         diff = (cur_direction-direction)*pi/180 # difference in directions in radians
 
@@ -233,13 +244,28 @@ class MyRob(CRobLinkAngs):
             print(f"\tRotate: {power*mod}, {power*-mod}")
         
         else:
-            BASESPEED = 0.075
-            mod = 0,0#(abs(sin(diff))/3, 0) if sin(diff) > 0 else (0, abs(sin(diff))/3) if sin(diff) < 0 else (0, 0)
+            BASESPEED = 0.08
 
             line = [x == '1' for x in self.measures.lineSensor]
 
-            mod2 = 0.03 * (not line[2]), 0.03 * (not line[4])
-            motor = BASESPEED - breaker + mod[0] + mod2[0], BASESPEED - breaker + mod[1] + mod2[1]
+            # mod1 - try to make the 3 middle sensors inside the line
+            # mod2 - if the center sensor is not in the line, make a big turn to try to put it inside
+            # mod3 - if the extremities sensors are detecting (or think that are detecting) an intersection, slightly slow down
+            mod1 = 0.03 * (not line[2]), 0.03 * (not line[4])
+            mod2 = [0,0]
+            if not self.linesensor[3].get_state():
+                mod2 = 0, 0
+                if any([sensor.get_state() for sensor in self.linesensor[:3]]):
+                    mod2[1] = 0.06
+                elif any([sensor.get_state() for sensor in self.linesensor[4:]]):
+                    mod2[0] = 0.06
+
+            mod3 = -0.01 if sum([s.get_state() for s in self.linesensor[:2]]) == 1 or sum([s.get_state() for s in self.linesensor[5:]]) == 1 else 0
+
+            motor = (
+                    BASESPEED - breaker + mod[0] + mod2[0] + mod3[0] + mod3, 
+                    BASESPEED - breaker + mod[1] + mod2[1] + mod3[1] + mod3
+            )
 
             self.driveMotors(motor[0], motor[1])
             self.locator.update(motor[0], motor[1], cur_direction)   
@@ -247,11 +273,12 @@ class MyRob(CRobLinkAngs):
             self.just_rotated = False #0  if self.just_rotated < 1 else self.just_rotated - 2 
             print(f"\tMove: {motor[0]}, {motor[1]}")  
             print(f"\t\t{breaker = }")
-            print(f"\t\t{mod = }")
-            print(f"\t\t{mod2 = }")   
+            print(f"\t\t{mod1 = }")  
+            print(f"\t\t{mod2 = }") 
+            print(f"\t\t{mod3 = }")   
 
-        for sensor in self.linesensor:
-            sensor.move(self.locator)
+        # for sensor in self.linesensor:
+        #     sensor.move(self.locator)
 
     def between(self, border1, target, border2, orientation): # orientation -> abs orientation, target -> coordinates we're evalutaing
         idx = int(abs(sin(orientation * pi/180))) # vertical (y, 1) or horizontal (x, 0) orientation?
@@ -264,7 +291,7 @@ class MyRob(CRobLinkAngs):
         return border1[idx] < round(target[idx],1) if orientation in [0, 90] else border2[idx] > round(target[idx],1) # check if target is after the line
 
     def detect_intersection2(self): # Detect current intersecting roads
-        cross_roads = self.detect_cross_roads() # Detect roads to the left, right or forward
+        self.detect_cross_roads() # Detect roads to the left, right or forward and updates linesensor
 
         # Check if lined up minimally with for intersection detection
         curr_orientation = None
@@ -309,11 +336,11 @@ class MyRob(CRobLinkAngs):
             self.target.y - 0.2 - mod_y
         ) # negative borders
 
-        print(f"\tOrientation({curr_orientation})")
-        print(f"\t{border1 = }")
-        print(f"\t{border2 = }")
-        print(f"\tTarget: {self.target}")
-        print(f"\tMod: {mod_x}, {mod_y}")
+        #print(f"\tOrientation({curr_orientation})")
+        #print(f"\t{border1 = }")
+        #print(f"\t{border2 = }")
+        #print(f"\tTarget: {self.target}")
+        #print(f"\tMod: {mod_x}, {mod_y}")
 
         roads = [0, 0]
         line = []
@@ -354,7 +381,7 @@ class MyRob(CRobLinkAngs):
                 else:
                     self.locator.x = round(self.locator.x) + border
 
-            print(f"UPDATE LOCATOR2: ({self.locator.x}, {self.locator.y}), Sensor: ({sensor.x},{sensor.y},{sensor.id}), B4 Update: {wrong}")
+                print(f"UPDATE LOCATOR2: ({self.locator.x}, {self.locator.y}), Sensor: ({sensor.x},{sensor.y},{sensor.id}), B4 Update: {wrong}")
 
         for road_idx in [0,1]: # left, right
             if roads[road_idx] > 2:
@@ -381,7 +408,6 @@ class MyRob(CRobLinkAngs):
 
                     line_coords = (line_x, line_y)
 
-                print("Intersection to the side!")
                 self.map.add_intersect2(curr_orientation, [-90, 90][road_idx], cur_x, cur_y)
                 for sensor in self.linesensor: sensor.clear_state()
 
@@ -389,8 +415,6 @@ class MyRob(CRobLinkAngs):
         if self.linesensor[3].get_state() and self.after(border1=border1, target=(self.linesensor[3].x, self.linesensor[3].y), border2=border2, orientation=curr_orientation):
             #print("Intersection Forward!")
             self.map.add_intersect2(curr_orientation, sensor.road, cur_x, cur_y)
-
-        print("End checking for intersections.")
 
     def detect_cross_roads(self): # Detect roads to the left, right or forward, TODO use line sensor mechanics?
         # Current Line
@@ -438,7 +462,10 @@ class MyRob(CRobLinkAngs):
         node1 = self.map.graph.get_node(f"{pos[0]}:{pos[1]}")
         node2 = self.map.graph.get_node(f"{self.curr_stub[0]}:{self.curr_stub[1]}")
 
+        tic = time.perf_counter()
         self.path = self.map.graph.shortest_path(node1, node2)[::2] # Get shortest path to get to stub
+        toc = time.perf_counter()
+        print(f"\t\tShortest Path Elapsed Time: {toc - tic}")
 
         # Compress path
         #
@@ -446,26 +473,26 @@ class MyRob(CRobLinkAngs):
         #  -->
         # (4,0), (4,2), (8,2)
         #
-        # if len(self.path) > 2:
-        #     x_diff = y_diff = True
-        #     tmp_path =  [self.path[0]]
-        #     for i in range(1, len(self.path)):
-        #         if x_diff and tmp_path[-1].x - self.path[i].x != 0:
-        #             y_diff = False
-        #             tmp_path[-1] = self.path[i]
-        #         if y_diff and tmp_path[-1].y - self.path[i].y != 0:
-        #             x_diff = False
-        #             tmp_path[-1] = self.path[i]
-        #         else:
-        #             tmp_path.append(self.path[i])
-        #             x_diff = not x_diff
-        #             y_diff = not y_diff
+        if len(self.path) > 2:
+            x_diff = y_diff = True
+            tmp_path =  [self.path[0]]
+            for i in range(1, len(self.path)):
+                if x_diff and tmp_path[-1].x - self.path[i].x != 0:
+                    y_diff = False
+                    tmp_path[-1] = self.path[i]
+                if y_diff and tmp_path[-1].y - self.path[i].y != 0:
+                    x_diff = False
+                    tmp_path[-1] = self.path[i]
+                else:
+                    tmp_path.append(self.path[i])
+                    x_diff = not x_diff
+                    y_diff = not y_diff
 
-        #     print(f"Old Path: {self.path}")
-        #     print(f"New Path: {tmp_path}")
-        #     self.path = tmp_path
-        # else:
-        self.path = self.path[1:]
+            print(f"Old Path: {self.path}")
+            print(f"New Path: {tmp_path}")
+            self.path = tmp_path
+        else:
+            self.path = self.path[1:]
 
         print(f"Path: {[x.id for x in self.path]}")
         
